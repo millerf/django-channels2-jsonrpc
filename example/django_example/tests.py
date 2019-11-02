@@ -1,17 +1,18 @@
 from datetime import datetime
 from channels2_jsonrpc import JsonRpcConsumerTest, JsonRpcException
-from channels.tests import ChannelTestCase, HttpClient
+from channels.testing import HttpCommunicator
+
 from .consumer import MyJsonRpcWebsocketConsumerTest, DjangoJsonRpcWebsocketConsumerTest
 
-
+@pytest.mark.asyncio
 class TestMyJsonRpcConsumer(JsonRpcConsumerTest):
     pass
 
-
+@pytest.mark.asyncio
 class TestMyJsonRpcConsumer2(JsonRpcConsumerTest):
     pass
 
-
+@pytest.mark.asyncio
 class TestsJsonRPCWebsocketConsumer(ChannelTestCase):
 
     def test_connection(self):
