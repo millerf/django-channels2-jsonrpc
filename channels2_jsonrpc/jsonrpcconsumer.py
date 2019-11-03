@@ -327,7 +327,7 @@ class RpcBase:
         return result
 
 
-class JsonWebsocketConsumer(JsonWebsocketConsumer, RpcBase):
+class JsonRpcWebsocketConsumer(JsonWebsocketConsumer, RpcBase):
     def base_receive_json(self, content):
         """
         Called when receiving a message.
@@ -345,7 +345,7 @@ class JsonWebsocketConsumer(JsonWebsocketConsumer, RpcBase):
         self.base_receive_json(content)
 
 
-class JsonWebsocketConsumer(JsonWebsocketConsumer):
+class AsyncsonRpcWebsocketConsumer(AsyncJsonWebsocketConsumer, RpcBase):
 
     async def receive_json(self, content):
         self.base_receive_json(content)
@@ -389,7 +389,7 @@ class AsyncRpcHttpConsumer(AsyncHttpConsumer, RpcBase):
         ])
 
 
-class JsonRpcConsumerTest():
+class JsonRpcConsumerTest(JsonRpcWebsocketConsumer):
     @classmethod
     def clean(cls):
         """
