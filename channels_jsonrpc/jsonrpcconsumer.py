@@ -74,7 +74,7 @@ class RpcBase:
     INVALID_PARAMS = -32602
     INTERNAL_ERROR = -32603
     GENERIC_APPLICATION_ERROR = -32000
-
+    PARSE_RESULT_ERROR = -32701
     errors = dict()
     errors[PARSE_ERROR] = "Parse Error"
     errors[INVALID_REQUEST] = "Invalid Request"
@@ -82,6 +82,7 @@ class RpcBase:
     errors[INVALID_PARAMS] = "Invalid Params"
     errors[INTERNAL_ERROR] = "Internal Error"
     errors[GENERIC_APPLICATION_ERROR] = "Application Error"
+    errors[PARSE_RESULT_ERROR] = 'Error while parsing result'
 
     _http_codes = {
         PARSE_ERROR: 500,
@@ -214,8 +215,7 @@ class RpcBase:
         reply_channel.send({"text": cls._encode(content)})
 
 
-    @classmethod
-    def __process(cls, data, original_msg, is_notification=False):
+    def __process(self, data, is_notification=False):
         """
         Process the received data
         :param dict data:
@@ -225,47 +225,43 @@ class RpcBase:
         """
 
         if data.get('jsonrpc') != "2.0":
-            raise JsonRpcException(data.get('id'), cls.INVALID_REQUEST)
+            raise JsonRpcException(data.get('id'), self.INVALID_REQUEST)
 
         if 'method' not in data:
-            raise JsonRpcException(data.get('id'), cls.INVALID_REQUEST)
+            raise JsonRpcException(data.get('id'), self.INVALID_REQUEST)
 
         method_name = data['method']
         if not isinstance(method_name, string_types):
-            raise JsonRpcException(data.get('id'), cls.INVALID_REQUEST)
+            raise JsonRpcException(data.get('id'), self.INVALID_REQUEST)
 
         if method_name.startswith('_'):
-            raise JsonRpcException(data.get('id'), cls.METHOD_NOT_FOUND)
+            raise JsonRpcException(data.get('id'), self.METHOD_NOT_FOUND)
 
         try:
             if is_notification:
-                method = cls.available_rpc_notifications[id(cls)][method_name]
+                method = self.__class__.available_rpc_notifications[id(self.__class__)][method_name]
             else:
-                method = cls.available_rpc_methods[id(cls)][method_name]
-            proto = original_msg.channel.name.split('.')[0]
-
-            if not method.options[proto]:
-                raise MethodNotSupported('Method not available through %s' % proto)
+                method = self.__class__.available_rpc_methods[id(self.__class__)][method_name]
         except (KeyError, MethodNotSupported):
-            raise JsonRpcException(data.get('id'), cls.METHOD_NOT_FOUND)
+            raise JsonRpcException(data.get('id'), self.METHOD_NOT_FOUND)
         params = data.get('params', [])
 
         if not isinstance(params, (list, dict)):
-            raise JsonRpcException(data.get('id'), cls.INVALID_PARAMS)
+            raise JsonRpcException(data.get('id'), self.INVALID_PARAMS)
 
         # log call in debug mode
         if settings.DEBUG:
             logger.debug('Executing %s(%s)' % (method_name, json.dumps(params)))
 
-        result = cls.__get_result(method, params, original_msg)
+        result = self.__get_result(method, params)
 
         # check and pack result
         if not is_notification:
             # log call in debug mode
             if settings.DEBUG:
-                logger.debug('Execution result: %s' % cls._encode(result))
+                logger.debug('Execution result: %s' % result)
 
-            result = cls.json_rpc_frame(result=result, _id=data.get('id'))
+            result = self.json_rpc_frame(result=result, _id=data.get('id'))
         elif result is not None:
             logger.warning("The notification method shouldn't return any result")
             logger.warning("method: %s, params: %s" % (method_name, params))
@@ -287,7 +283,7 @@ class RpcBase:
                 try:
                     if data.get('method') is not None and data.get('id') is None:
                         is_notification = True
-                    result = self.__process(data, data, is_notification)
+                    result = self.__process(data, is_notification)
                 except JsonRpcException as e:
                     result = e.as_dict()
                 except Exception as e:
@@ -306,16 +302,14 @@ class RpcBase:
 
         return result, is_notification
 
-    @staticmethod
-    def __get_result(method, params, original_msg):
+    def __get_result(self, method, params):
 
         func_args = getattr(getfullargspec(method), keywords_args)
-
         if func_args and "kwargs" in func_args:
             if isinstance(params, list):
-                result = method(*params, original_message=original_msg)
+                result = method(*params, consumer=self)
             else:
-                result = method(original_message=original_msg, **params)
+                result = method(**params, consumer=self)
         else:
             if isinstance(params, list):
                 result = method(*params)
@@ -326,12 +320,20 @@ class RpcBase:
 
 
 class JsonRpcWebsocketConsumer(JsonWebsocketConsumer, RpcBase):
-    @classmethod
-    def decode_json(cls, data):
+    def decode_json(self, data):
        try:
            return json.loads(data)
-       except json.decoder.JSONDecodeError:
+       except json.decoder.JSONDecodeError as e:
+           frame = self.error(None, self.PARSE_ERROR, self.errors[self.PARSE_ERROR])
+           self.send_json(frame)
            return None
+
+    def encode_json(self, data):
+        try:
+            return json.dumps(data)
+        except TypeError:
+            frame = self.error(None, self.PARSE_ERROR, self.errors[self.PARSE_RESULT_ERROR], '%s' % data['result'])
+            return json.dumps(frame)
 
     def base_receive_json(self, content):
         """

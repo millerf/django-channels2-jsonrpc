@@ -43,7 +43,6 @@ class MyJsonRpcWebsocketConsumerTest(JsonRpcConsumerTest):
         :return:
         """
 
-        print('aaaa')
         return cls.__process(data, original_msg)
 
 
@@ -59,3 +58,9 @@ def ping(fake_an_error, **kwargs):
         #  --> {"id":1, "jsonrpc":"2.0","method":"mymodule.rpc.ping","params":{}}
         #  <-- {"id": 1, "jsonrpc": "2.0", "result": "pong"}
         return "pong"
+
+
+class DjangoJsonRpcWebsocketConsumerTest(JsonRpcConsumerTest):
+
+    def encode_json(self, data):
+        return DjangoJSONEncoder().encode(data)
