@@ -18,7 +18,7 @@ notifications:
 before_deploy:
   - export RELEASE_PKG_FILE=$(ls *.tar.gz)
   - echo "deploying $RELEASE_PKG_FILE to GitHub releases"
-  - echo ls /home/travis/build/millerf/django-channels-jsonrpc
+  - echo ls /home/travis/build/millerf/django-channels2-jsonrpc
 deploy:
     - provider: pypi
       user: millerf
