@@ -1,155 +1,151 @@
 from datetime import datetime
-from channels2_jsonrpc import JsonRpcConsumerTest, JsonRpcException
+from channels_jsonrpc import JsonRpcConsumerTest, JsonRpcException
 from channels.testing import WebsocketCommunicator
 import pytest
-from .routing import channel_routing
-from .consumer import MyJsonRpcWebsocketConsumerTest, DjangoJsonRpcWebsocketConsumerTest
+from .routing import application
+from .consumer import MyJsonRpcWebsocketConsumerTest
 
 from channels.auth import AuthMiddlewareStack
 from channels.routing import ProtocolTypeRouter, URLRouter
-from .routing import channel_routing
-application = ProtocolTypeRouter({
-    # (http->django views is added by default)
-    'websocket': AuthMiddlewareStack(
-        URLRouter(
-            channel_routing
-        )
-    ),
-})
 
-@pytest.mark.asyncio
-class TestMyJsonRpcConsumer(JsonRpcConsumerTest):
-    pass
 
-@pytest.mark.asyncio
-class TestMyJsonRpcConsumer2(JsonRpcConsumerTest):
-    pass
+# class TestMyJsonRpcConsumer(JsonRpcConsumerTest):
+#     pass
+#
+#
+# class TestMyJsonRpcConsumer2(JsonRpcConsumerTest):
+#     pass
+
 
 @pytest.mark.asyncio
 async def test_connection():
     # Test connection
-    communicator = WebsocketCommunicator(application)
+    communicator = WebsocketCommunicator(application, '')
     connected, subprotocol = await communicator.connect()
     assert connected
-    # Test sending text
-    await communicator.send_json_to({})
-    response = await communicator.receive_from()
-    assert response == "hello"
-    # Close
     await communicator.disconnect()
-#
-#     def test_response_are_well_formatted(self):
-#         # Answer should always json-rpc2
-#         client = WebsocketCommunicator()
-#         client.send_and_consume(u'websocket.receive', {'value': 'my_value'})
-#
-#         response = client.receive()
-#         self.assertEqual(response['error'],
-#                          {u'code': JsonRpcConsumerTest.INVALID_REQUEST,
-#                          u'message': JsonRpcConsumerTest.errors[JsonRpcConsumerTest.INVALID_REQUEST]})
-#         self.assertEqual(response['jsonrpc'], '2.0')
-#         if 'id' in response:
-#             self.assertEqual(response['id'], None)
-#
-#     def test_inadequate_request(self):
-#
-#         client = HttpClient()
-#
-#         client.send_and_consume(u'websocket.receive', text='{"value": "my_value"}')
-#         self.assertEqual(client.receive()['error'],
-#                          {u'code': JsonRpcConsumerTest.INVALID_REQUEST,
-#                          u'message': JsonRpcConsumerTest.errors[JsonRpcConsumerTest.INVALID_REQUEST]})
-#
-#         client.send_and_consume(u'websocket.receive')
-#         self.assertEqual(client.receive()['error'], {u'code': JsonRpcConsumerTest.INVALID_REQUEST,
-#                                                      u'message': JsonRpcConsumerTest.errors[
-#                                                          JsonRpcConsumerTest.INVALID_REQUEST]})
-#
-#         client.send_and_consume(u'websocket.receive', text='["value", "my_value"]')
-#         self.assertEqual(client.receive()['error'], {u'code': JsonRpcConsumerTest.INVALID_REQUEST,
-#                                                      u'message': JsonRpcConsumerTest.errors[
-#                                                          JsonRpcConsumerTest.INVALID_REQUEST]})
-#
-#         # missing "method"
-#         client.send_and_consume(u'websocket.receive', text='{"id":"2", "jsonrpc":"2.0", "params":{}}')
-#         self.assertEqual(client.receive()['error'],
-#                          {u'code': JsonRpcConsumerTest.INVALID_REQUEST,
-#                          u'message': JsonRpcConsumerTest.errors[JsonRpcConsumerTest.INVALID_REQUEST]})
-#
-#         # wrong method name
-#         client.send_and_consume(u'websocket.receive', text='{"id":"2", "jsonrpc":"2.0", "method":2, "params":{}}')
-#         self.assertEqual(client.receive()['error'], {u'code': JsonRpcConsumerTest.INVALID_REQUEST,
-#                                                      u'message': JsonRpcConsumerTest.errors[
-#                                                          JsonRpcConsumerTest.INVALID_REQUEST]})
-#
-#         # wrong method name
-#         client.send_and_consume(u'websocket.receive', text='{"id":"2", "jsonrpc":"2.0", "method":"_test", "params":{}}')
-#         self.assertEqual(client.receive()['error'], {u'code': JsonRpcConsumerTest.METHOD_NOT_FOUND,
-#                                                      u'message': JsonRpcConsumerTest.errors[
-#                                                          JsonRpcConsumerTest.METHOD_NOT_FOUND]})
-#
-#         client.send_and_consume(u'websocket.receive', text='{"value": "my_value"}')
-#         self.assertEqual(client.receive()['error'], {u'code': JsonRpcConsumerTest.INVALID_REQUEST,
-#                                                      u'message': JsonRpcConsumerTest.errors[
-#                                                          JsonRpcConsumerTest.INVALID_REQUEST]})
-#
-#         client.send_and_consume(u'websocket.receive', text='sqwdw')
-#         self.assertEqual(client.receive()['error'],
-#                          {u'code': JsonRpcConsumerTest.PARSE_ERROR,
-#                           u'message': JsonRpcConsumerTest.errors[JsonRpcConsumerTest.PARSE_ERROR]})
-#
-#         client.send_and_consume(u'websocket.receive', text='{}')
-#         self.assertEqual(client.receive()['error'],
-#                          {u'code': JsonRpcConsumerTest.INVALID_REQUEST,
-#                          u'message': JsonRpcConsumerTest.errors[JsonRpcConsumerTest.INVALID_REQUEST]})
-#
-#         client.send_and_consume(u'websocket.receive', text=None)
-#         self.assertEqual(client.receive()['error'],
-#                          {u'code': JsonRpcConsumerTest.INVALID_REQUEST,
-#                          u'message': JsonRpcConsumerTest.errors[JsonRpcConsumerTest.INVALID_REQUEST]})
-#
-#     def test_unexisting_method(self):
+
+
+@pytest.mark.asyncio
+async def test_response_are_well_formatted():
+    # Answer should always json-rpc2
+    communicator = WebsocketCommunicator(application, '')
+    await communicator.connect()
+    await communicator.send_json_to({'value': 'my_value'})
+
+    response = await communicator.receive_json_from()
+    assert response['error']['code'] == JsonRpcConsumerTest.INVALID_REQUEST
+    assert response['error']['message'] == JsonRpcConsumerTest.errors[JsonRpcConsumerTest.INVALID_REQUEST]
+    assert response['jsonrpc'] == '2.0'
+    assert hasattr(response, 'id') is False
+    await communicator.disconnect()
+
+@pytest.mark.asyncio
+async def test_inadequate_request():
+
+    client = WebsocketCommunicator(application, '')
+    await client.connect()
+
+    await client.send_json_to({"value": "my_value"})
+    response = await client.receive_json_from()
+    assert(response['error'] ==
+                     {u'code': JsonRpcConsumerTest.INVALID_REQUEST,
+                     u'message': JsonRpcConsumerTest.errors[JsonRpcConsumerTest.INVALID_REQUEST]})
+
+    await client.send_json_to(None)
+    response = await client.receive_json_from()
+    assert(response['error'] == {u'code': JsonRpcConsumerTest.INVALID_REQUEST,
+                                                 u'message': JsonRpcConsumerTest.errors[
+                                                     JsonRpcConsumerTest.INVALID_REQUEST]})
+
+    await client.send_json_to(["value", "my_value"])
+    response = await client.receive_json_from()
+    assert(response['error'] == {u'code': JsonRpcConsumerTest.INVALID_REQUEST,
+                                                 u'message': JsonRpcConsumerTest.errors[
+                                                     JsonRpcConsumerTest.INVALID_REQUEST]})
+
+    # missing "method"
+    await client.send_json_to({"id":"2", "jsonrpc":"2.0", "params":{}})
+    response = await client.receive_json_from()
+    assert(response['error'] ==
+                     {u'code': JsonRpcConsumerTest.INVALID_REQUEST,
+                     u'message': JsonRpcConsumerTest.errors[JsonRpcConsumerTest.INVALID_REQUEST]})
+
+    # wrong method name
+    await client.send_json_to({"id":"2", "jsonrpc":"2.0", "method":2, "params":{}})
+    response = await client.receive_json_from()
+    assert(response['error'] == {u'code': JsonRpcConsumerTest.INVALID_REQUEST,
+                                                 u'message': JsonRpcConsumerTest.errors[
+                                                     JsonRpcConsumerTest.INVALID_REQUEST]})
+
+    # wrong method name
+    await client.send_json_to({"id":"2", "jsonrpc":"2.0", "method":"_test", "params":{}})
+    response = await client.receive_json_from()
+    assert(response['error'] == {u'code': JsonRpcConsumerTest.METHOD_NOT_FOUND,
+                                                 u'message': JsonRpcConsumerTest.errors[
+                                                     JsonRpcConsumerTest.METHOD_NOT_FOUND]})
+
+    await client.send_json_to({"value": "my_value"})
+    response = await client.receive_json_from()
+    assert(response['error'] == {u'code': JsonRpcConsumerTest.INVALID_REQUEST,
+                                                 u'message': JsonRpcConsumerTest.errors[
+                                                     JsonRpcConsumerTest.INVALID_REQUEST]})
+
+    await client.send_to(text_data='sqwdw')
+    response = await client.receive_json_from()
+    assert(response['error'] ==
+                     {u'code': JsonRpcConsumerTest.INVALID_REQUEST,
+                      u'message': JsonRpcConsumerTest.errors[JsonRpcConsumerTest.INVALID_REQUEST]})
+
+    await client.send_json_to({})
+    response = await client.receive_json_from()
+    assert(response['error'] ==
+                     {u'code': JsonRpcConsumerTest.INVALID_REQUEST,
+                     u'message': JsonRpcConsumerTest.errors[JsonRpcConsumerTest.INVALID_REQUEST]})
+
+
+#     def test_unexisting_method():
 #         # unknown method
 #         client = HttpClient()
 #
 #         client.send_and_consume(u'websocket.receive',
 #                                 text='{"id": 1, "jsonrpc": "2.0", "method": "unknown_method", "params": {}}')
 #         msg = client.receive()
-#         self.assertEqual(msg['error'], {u'code': JsonRpcConsumerTest.METHOD_NOT_FOUND,
+#         assert(msg['error'], {u'code': JsonRpcConsumerTest.METHOD_NOT_FOUND,
 #                                         u'message': JsonRpcConsumerTest.errors[JsonRpcConsumerTest.METHOD_NOT_FOUND]})
 #
-#     def test_parsing_with_bad_request(self):
+#     def test_parsing_with_bad_request():
 #         # Test that parsing a bad request works
 #
 #         client = HttpClient()
 #
-#         client.send_and_consume(u'websocket.receive', text='{"id":"2", "method":"ping2", "params":{}}')
-#         self.assertEqual(client.receive()['error'],
+#         await communicator.send_json_to({"id":"2", "method":"ping2", "params":{}})
+#         assert(client.receive()['error'],
 #                          {u'code': JsonRpcConsumerTest.INVALID_REQUEST,
 #                          u'message': JsonRpcConsumerTest.errors[JsonRpcConsumerTest.INVALID_REQUEST]})
 #
-#     def test_notification(self):
+#     def test_notification():
 #         # Test that parsing a bad request works
 #
 #         client = HttpClient()
 #
-#         client.send_and_consume(u'websocket.receive', text='{"jsonrpc":"2.0", "method":"a_notif", "params":{}}')
-#         self.assertEqual(client.receive(), None)
+#         await communicator.send_json_to({"jsonrpc":"2.0", "method":"a_notif", "params":{}})
+#         assert(client.receive(), None)
 #
-#     def test_method(self):
+#     def test_method():
 #
 #         @MyJsonRpcWebsocketConsumerTest.rpc_method()
 #         def ping2():
 #             return "pong2"
 #
 #         client = HttpClient()
-#         client.send_and_consume(u'websocket.receive', text='{"id":1, "jsonrpc":"2.0", "method":"ping2", "params":{}}')
+#         await communicator.send_json_to({"id":1, "jsonrpc":"2.0", "method":"ping2", "params":{}})
 #
 #         msg = client.receive()
 #
-#         self.assertEqual(msg['result'], "pong2")
+#         assert(msg['result'], "pong2")
 #
-#     def test_parsing_with_good_request_wrong_params(self):
+#     def test_parsing_with_good_request_wrong_params():
 #         @JsonRpcConsumerTest.rpc_method()
 #         def ping2():
 #             return "pong2"
@@ -164,7 +160,7 @@ async def test_connection():
 #                       [u'ping2() takes no arguments (1 given)',               # python 2
 #                        u'ping2() takes 0 positional arguments but 1 was given'])     # python 3
 #
-#     def test_parsing_with_good_request_ainvalid_paramas(self):
+#     def test_parsing_with_good_request_ainvalid_paramas():
 #         @JsonRpcConsumerTest.rpc_method()
 #         def ping2(test):
 #             return "pong2"
@@ -175,38 +171,38 @@ async def test_connection():
 #         client.send_and_consume(u'websocket.receive',
 #                                 text='{"id":1, "jsonrpc":"2.0", "method":"ping2", "params":true}')
 #         msg = client.receive()
-#         self.assertEqual(msg['error'], {u'code': JsonRpcConsumerTest.INVALID_PARAMS,
+#         assert(msg['error'], {u'code': JsonRpcConsumerTest.INVALID_PARAMS,
 #                                                      u'message': JsonRpcConsumerTest.errors[
 #                                                          JsonRpcConsumerTest.INVALID_PARAMS]})
 #
-#     def test_parsing_with_good_request(self):
+#     def test_parsing_with_good_request():
 #         # Test that parsing a ping request works
 #         client = HttpClient()
 #
 #         client.send_and_consume(u'websocket.receive',
 #                                 text='{"id":1, "jsonrpc":"2.0", "method":"ping", "params":[false]}')
 #         msg = client.receive()
-#         self.assertEquals(msg['result'], "pong")
+#         asserts(msg['result'], "pong")
 #
-#     def test_id_on_good_request(self):
+#     def test_id_on_good_request():
 #         # Test that parsing a ping request works
 #         client = HttpClient()
 #
 #         client.send_and_consume(u'websocket.receive',
 #                                 text='{"id":52, "jsonrpc":"2.0", "method":"ping", "params":{}}')
 #         msg = client.receive()
-#         self.assertEqual(msg['id'], 52)
+#         assert(msg['id'], 52)
 #
-#     def test_id_on_errored_request(self):
+#     def test_id_on_errored_request():
 #         # Test that parsing a ping request works
 #         client = HttpClient()
 #
 #         client.send_and_consume(u'websocket.receive',
 #                                 text='{"id":52, "jsonrpc":"2.0", "method":"ping", "params":["test"]}')
 #         msg = client.receive()
-#         self.assertEqual(msg['id'], 52)
+#         assert(msg['id'], 52)
 #
-#     def test_get_rpc_methods(self):
+#     def test_get_rpc_methods():
 #
 #         @TestMyJsonRpcConsumer.rpc_method()
 #         def ping3():
@@ -217,10 +213,10 @@ async def test_connection():
 #             return "pong4"
 #
 #         methods = TestMyJsonRpcConsumer.get_rpc_methods()
-#         self.assertEquals(methods, ['ping3'])
-#         self.assertEquals(TestMyJsonRpcConsumer2.get_rpc_methods(), ['ping4'])
+#         asserts(methods, ['ping3'])
+#         asserts(TestMyJsonRpcConsumer2.get_rpc_methods(), ['ping4'])
 #
-#     def test_get_rpc_methods_with_name(self):
+#     def test_get_rpc_methods_with_name():
 #
 #         class TestMyJsonRpcConsumer(JsonRpcConsumerTest):
 #             pass
@@ -229,9 +225,9 @@ async def test_connection():
 #         def ping5():
 #             return "pong5"
 #
-#         self.assertEquals(TestMyJsonRpcConsumer.get_rpc_methods(), ['test.ping.rpc'])
+#         asserts(TestMyJsonRpcConsumer.get_rpc_methods(), ['test.ping.rpc'])
 #
-#     def test_error_on_rpc_call(self):
+#     def test_error_on_rpc_call():
 #         @MyJsonRpcWebsocketConsumerTest.rpc_method()
 #         def ping_with_error():
 #             raise Exception("pong_with_error")
@@ -242,9 +238,9 @@ async def test_connection():
 #         client.send_and_consume(u'websocket.receive',
 #                                 text='{"id":1, "jsonrpc":"2.0", "method":"ping_with_error", "params":{}}')
 #         msg = client.receive()
-#         self.assertEqual(msg['error']['message'], u'pong_with_error')
+#         assert(msg['error']['message'], u'pong_with_error')
 #
-#     def test_error_on_rpc_call_with_data(self):
+#     def test_error_on_rpc_call_with_data():
 #         @MyJsonRpcWebsocketConsumerTest.rpc_method()
 #         def ping_with_error_data():
 #             raise Exception("test_data", True)
@@ -255,12 +251,12 @@ async def test_connection():
 #         client.send_and_consume(u'websocket.receive',
 #                                 text='{"id":1, "jsonrpc":"2.0", "method":"ping_with_error_data", "params":{}}')
 #         msg = client.receive()
-#         self.assertEqual(msg['id'], 1)
-#         self.assertEqual(msg['error']['code'], JsonRpcConsumerTest.GENERIC_APPLICATION_ERROR)
-#         self.assertEqual(msg['error']['data'], ['test_data', True])
+#         assert(msg['id'], 1)
+#         assert(msg['error']['code'], JsonRpcConsumerTest.GENERIC_APPLICATION_ERROR)
+#         assert(msg['error']['data'], ['test_data', True])
 #
 #
-#     def test_JsonRpcWebsocketConsumerTest_clean(self):
+#     def test_JsonRpcWebsocketConsumerTest_clean():
 #
 #         class TestNamesakeJsonRpcConsumer(JsonRpcConsumerTest):
 #             pass
@@ -273,9 +269,9 @@ async def test_connection():
 #
 #         TestNamesakeJsonRpcConsumer.clean()
 #
-#         self.assertEquals(TestNamesakeJsonRpcConsumer.get_rpc_methods(), [])
+#         asserts(TestNamesakeJsonRpcConsumer.get_rpc_methods(), [])
 #
-#     def test_namesake_consumers(self):
+#     def test_namesake_consumers():
 #
 #         # Changed name to TestNamesakeJsonRpcConsumer2 to prevent overlapping with "previous" TestMyJsonRpcConsumer
 #
@@ -298,25 +294,25 @@ async def test_connection():
 #         def method2():
 #           pass
 #
-#         self.assertEquals(Context1.TestNamesakeJsonRpcConsumer2.get_rpc_methods(), ['method1'])
-#         self.assertEquals(Context2.TestNamesakeJsonRpcConsumer2.get_rpc_methods(), ['method2'])
+#         asserts(Context1.TestNamesakeJsonRpcConsumer2.get_rpc_methods(), ['method1'])
+#         asserts(Context2.TestNamesakeJsonRpcConsumer2.get_rpc_methods(), ['method2'])
 #
-#     def test_no_rpc_methods(self):
+#     def test_no_rpc_methods():
 #         class TestNamesakeJsonRpcConsumer(JsonRpcConsumerTest):
 #             pass
 #
-#         self.assertEquals(TestNamesakeJsonRpcConsumer.get_rpc_methods(), [])
+#         asserts(TestNamesakeJsonRpcConsumer.get_rpc_methods(), [])
 #
-#     def test_jsonRpcexception_dumping(self):
+#     def test_jsonRpcexception_dumping():
 #         import json
 #         exception = JsonRpcException(1, JsonRpcConsumerTest.GENERIC_APPLICATION_ERROR, data=[True, "test"])
 #         json_res = json.loads(str(exception))
-#         self.assertEqual(json_res["id"], 1)
-#         self.assertEqual(json_res["jsonrpc"], "2.0")
-#         self.assertEqual(json_res["error"]["data"], [True, "test"])
-#         self.assertEqual(json_res["error"]["code"], JsonRpcConsumerTest.GENERIC_APPLICATION_ERROR)
+#         assert(json_res["id"], 1)
+#         assert(json_res["jsonrpc"], "2.0")
+#         assert(json_res["error"]["data"], [True, "test"])
+#         assert(json_res["error"]["code"], JsonRpcConsumerTest.GENERIC_APPLICATION_ERROR)
 #
-#     def test_session_pass_param(self):
+#     def test_session_pass_param():
 #         @MyJsonRpcWebsocketConsumerTest.rpc_method()
 #         def ping_set_session(**kwargs):
 #             original_message = kwargs["original_message"]
@@ -326,20 +322,20 @@ async def test_connection():
 #         @MyJsonRpcWebsocketConsumerTest.rpc_method()
 #         def ping_get_session(**kwargs):
 #             original_message = kwargs["original_message"]
-#             self.assertEqual(original_message.channel_session["test"], True)
+#             assert(original_message.channel_session["test"], True)
 #             return "pong_get_session"
 #
 #         client = HttpClient()
 #         client.send_and_consume(u'websocket.receive',
 #                                 text='{"id":1, "jsonrpc":"2.0", "method":"ping_set_session", "params":{}}')
 #         msg = client.receive()
-#         self.assertEqual(msg['result'], "pong_set_session")
+#         assert(msg['result'], "pong_set_session")
 #         client.send_and_consume(u'websocket.receive',
 #                                 text='{"id":1, "jsonrpc":"2.0", "method":"ping_get_session", "params":{}}')
 #         msg = client.receive()
-#         self.assertEqual(msg['result'], "pong_get_session")
+#         assert(msg['result'], "pong_get_session")
 #
-#     def test_Session(self):
+#     def test_Session():
 #
 #         @MyJsonRpcWebsocketConsumerTest.rpc_method()
 #         def ping_set_session2(**kwargs):
@@ -357,15 +353,15 @@ async def test_connection():
 #         client.send_and_consume(u'websocket.receive',
 #                                 text='{"id":1, "jsonrpc":"2.0", "method":"ping_set_session2", "params":{}}')
 #         msg = client.receive()
-#         self.assertEqual(msg['result'], "pong_set_session2")
+#         assert(msg['result'], "pong_set_session2")
 #
 #         client2 = HttpClient()
 #         client2.send_and_consume(u'websocket.receive',
 #                                  text='{"id":1, "jsonrpc":"2.0", "method":"ping_get_session2", "params":{}}')
 #         msg = client2.receive()
-#         self.assertEqual(msg['result'], "pong_get_session2")
+#         assert(msg['result'], "pong_get_session2")
 #
-#     def test_custom_json_encoder(self):
+#     def test_custom_json_encoder():
 #         some_date = datetime.utcnow()
 #
 #         @MyJsonRpcWebsocketConsumerTest.rpc_method()
@@ -392,17 +388,17 @@ async def test_connection():
 #                                 text='{"id":1, "jsonrpc":"2.0", "method":"test_method1", "params":{}}',
 #                                 path='/django/')
 #         msg = client.receive()
-#         self.assertEqual(msg['result'], {u'date': some_date.isoformat()[:-3]})
+#         assert(msg['result'], {u'date': some_date.isoformat()[:-3]})
 #
-#     def test_message_is_not_thread_safe(self):
+#     def test_message_is_not_thread_safe():
 #
 #         class SpoofMessage:
 #
 #             class Channel:
-#                 def __init__(self):
+#                 def __init__():
 #                     self.name = None
 #
-#             def __init__(self):
+#             def __init__():
 #                 self.channel = SpoofMessage.Channel()
 #                 self.payload = None
 #
@@ -423,7 +419,7 @@ async def test_connection():
 #                 _message.payload = "test%s" % _i
 #                 _res = MyJsonRpcWebsocketConsumerTest._JsonRpcConsumer__process(
 #                     {"id": 1, "jsonrpc": "2.0", "method": "ping3", "params": []}, _message)
-#                 self.assertEqual(_res['result'], "test%s" % _i)
+#                 assert(_res['result'], "test%s" % _i)
 #
 #         import threading
 #         threading._start_new_thread(thread_test, ())
@@ -434,9 +430,9 @@ async def test_connection():
 #             _message.payload = "test%s" % i
 #             res = MyJsonRpcWebsocketConsumerTest._JsonRpcConsumer__process(
 #                 {"id": 1, "jsonrpc": "2.0", "method": "ping2", "params": []}, _message)
-#             self.assertEqual(res['result'], "test%s" % i)
+#             assert(res['result'], "test%s" % i)
 #
-#     def test_original_message_position_safe(self):
+#     def test_original_message_position_safe():
 #
 #         @MyJsonRpcWebsocketConsumerTest.rpc_method()
 #         def ping_set_session(name, value, **kwargs):
@@ -447,7 +443,7 @@ async def test_connection():
 #         @MyJsonRpcWebsocketConsumerTest.rpc_method()
 #         def ping_get_session(value2, name2, **kwargs):
 #             original_message = kwargs["original_message"]
-#             self.assertEqual(original_message.channel_session["test"], True)
+#             assert(original_message.channel_session["test"], True)
 #             return ["pong_get_session", value2, name2]
 #
 #         client = HttpClient()
@@ -455,14 +451,14 @@ async def test_connection():
 #                                 text='{"id":1, "jsonrpc":"2.0", "method":"ping_set_session", '
 #                                      '"params":["name_of_function", "value_of_function"]}')
 #         msg = client.receive()
-#         self.assertEqual(msg['result'], ["pong_set_session", "value_of_function", "name_of_function"])
+#         assert(msg['result'], ["pong_set_session", "value_of_function", "name_of_function"])
 #         client.send_and_consume(u'websocket.receive',
 #                                 text='{"id":1, "jsonrpc":"2.0", "method":"ping_get_session", '
 #                                      '"params":{"name2": "name2_of_function", "value2": "value2_of_function"}}')
 #         msg = client.receive()
-#         self.assertEqual(msg['result'], ["pong_get_session", "value2_of_function", "name2_of_function"])
+#         assert(msg['result'], ["pong_get_session", "value2_of_function", "name2_of_function"])
 #
-#     def test_websocket_param_in_decorator_for_method(self):
+#     def test_websocket_param_in_decorator_for_method():
 #
 #         @MyJsonRpcWebsocketConsumerTest.rpc_method(websocket=False)
 #         def ping():
@@ -473,9 +469,9 @@ async def test_connection():
 #                                 text='{"id":1, "jsonrpc":"2.0", "method":"ping", '
 #                                      '"params":[]}')
 #         msg = client.receive()
-#         self.assertEqual(msg['error']['message'], "Method Not Found")
+#         assert(msg['error']['message'], "Method Not Found")
 #
-#     def test_websocket_param_in_decorator_for_notification(self):
+#     def test_websocket_param_in_decorator_for_notification():
 #
 #         @MyJsonRpcWebsocketConsumerTest.rpc_notification(websocket=False)
 #         def ping():
@@ -486,12 +482,12 @@ async def test_connection():
 #                                 text='{"jsonrpc":"2.0", "method":"ping", '
 #                                      '"params":[]}')
 #         msg = client.receive()
-#         self.assertEqual(msg, None)
+#         assert(msg, None)
 #
 #
 # class TestsNotifications(ChannelTestCase):
 #
-#     def test_group_notifications(self):
+#     def test_group_notifications():
 #         from channels import Group
 #
 #         @MyJsonRpcWebsocketConsumerTest.rpc_method()
@@ -518,12 +514,12 @@ async def test_connection():
 #                                 text='{"id":1, "jsonrpc":"2.0", "method":"send_to_group", "params":["group_test"]}')
 #             # receive notif
 #             msg = _client.receive()
-#             self.assertEqual(msg['method'], "notification.notif")
-#             self.assertEqual(msg['params'], {"payload": 1234})
+#             assert(msg['method'], "notification.notif")
+#             assert(msg['params'], {"payload": 1234})
 #
 #             # receive response
 #             msg = _client.receive()
-#             self.assertEqual(msg['result'], True)
+#             assert(msg['result'], True)
 #
 #         client = HttpClient()
 #         client2 = HttpClient()
@@ -533,71 +529,71 @@ async def test_connection():
 #                                 text='{"id":1, "jsonrpc":"2.0", "method":"send_to_reply_channel", "params": []}')
 #
 #         msg = client.receive()
-#         self.assertEquals(msg['method'], "notification.ownnotif")
-#         self.assertEqual(msg['params'], {"payload": 12})
+#         asserts(msg['method'], "notification.ownnotif")
+#         assert(msg['params'], {"payload": 12})
 #
 #         msg = client.receive()
-#         self.assertEqual(msg['result'], True)
+#         assert(msg['result'], True)
 #
 #         # we add client to a group_test group
 #         client.send_and_consume(u'websocket.receive',
 #                                 text='{"id":1, "jsonrpc":"2.0", "method":"add_client_to_group", "params":["group_test"]}')
 #         msg = client.receive()
-#         self.assertEqual(msg['result'], True)
+#         assert(msg['result'], True)
 #
 #         msg = client.receive()
-#         self.assertEqual(msg, None)
+#         assert(msg, None)
 #
 #         # we make sure it works
 #         send_notif(client)
 #
 #         # we make sure the second client didn't receive anything
 #         msg = client2.receive()
-#         self.assertEqual(msg, None)
+#         assert(msg, None)
 #
 #         # we add the second client to another group
 #         client2.send_and_consume(u'websocket.receive',
 #                                 text='{"id":1, "jsonrpc":"2.0", "method":"add_client_to_group", "params":["group_test2"]}')
 #         msg = client2.receive()
-#         self.assertEqual(msg['result'], True)
+#         assert(msg['result'], True)
 #
 #         # send again
 #         send_notif(client)
 #
 #         # we make sure the second client didn't receive anything
 #         msg = client2.receive()
-#         self.assertEqual(msg, None)
+#         assert(msg, None)
 #
 #         # we add the second client to SAME group
 #         client2.send_and_consume(u'websocket.receive',
 #                                  text='{"id":1, "jsonrpc":"2.0", "method":"add_client_to_group", "params":["group_test"]}')
 #         msg = client2.receive()
-#         self.assertEqual(msg['result'], True)
+#         assert(msg['result'], True)
 #
 #         send_notif(client)
 #
 #         # now second client should receive (as well)
 #         msg = client2.receive()
-#         self.assertEqual(msg['method'], "notification.notif")
-#         self.assertEqual(msg['params'], {"payload": 1234})
+#         assert(msg['method'], "notification.notif")
+#         assert(msg['params'], {"payload": 1234})
 #
 #         # notif from second client
 #         send_notif(client2)
 #
 #         # now second client should receive (as well)
 #         msg = client.receive()
-#         self.assertEqual(msg['method'], "notification.notif")
-#         self.assertEqual(msg['params'], {"payload": 1234})
+#         assert(msg['method'], "notification.notif")
+#         assert(msg['params'], {"payload": 1234})
 #
-#     def test_inbound_notifications(self):
+#     def test_inbound_notifications():
 #
 #         @MyJsonRpcWebsocketConsumerTest.rpc_notification()
 #         def notif1(params, **kwargs):
-#             self.assertEqual(params, {"payload": True})
+#             assert(params, {"payload": True})
 #
 #         @MyJsonRpcWebsocketConsumerTest.rpc_notification('notif.notif2')
 #         def notif2(params, **kwargs):
-#             self.assertEqual(params, {"payload": 12345})
+#             assert(params, {"payload": 12345})
 #
 #         client = HttpClient()
 #
@@ -605,14 +601,14 @@ async def test_connection():
 #         client.send_and_consume(u'websocket.receive',
 #                                 text='{"jsonrpc":"2.0", "method":"notif1", "params":[{"payload": true}]}')
 #         msg = client.receive()
-#         self.assertEqual(msg, None)
+#         assert(msg, None)
 #
 #         # we test with method rewriting
 #         client.send_and_consume(u'websocket.receive',
 #                             text='{"jsonrpc":"2.0", "method":"notif.notif2", "params":[{"payload": 12345}]}')
-#         self.assertEqual(msg, None)
+#         assert(msg, None)
 #
-#     def test_kwargs_not_there(self):
+#     def test_kwargs_not_there():
 #
 #         @MyJsonRpcWebsocketConsumerTest.rpc_method()
 #         def ping():
@@ -624,9 +620,9 @@ async def test_connection():
 #         client.send_and_consume(u'websocket.receive',
 #                                 text='{"id":1, "jsonrpc":"2.0", "method":"ping", "params":[]}')
 #         msg = client.receive()
-#         self.assertEqual(msg["result"], True)
+#         assert(msg["result"], True)
 #
-#     def test_error_on_notification_frame(self):
+#     def test_error_on_notification_frame():
 #         @MyJsonRpcWebsocketConsumerTest.rpc_method()
 #         def ping():
 #             return True
@@ -637,4 +633,4 @@ async def test_connection():
 #         client.send_and_consume(u'websocket.receive',
 #                                 text='{"jsonrpc":"2.0", "method":"dwqwdq", "params":[]}')
 #         msg = client.receive()
-#         self.assertEqual(msg, None)
+#         assert(msg, None)

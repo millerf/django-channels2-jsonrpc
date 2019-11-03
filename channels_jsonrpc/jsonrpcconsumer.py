@@ -92,8 +92,6 @@ class RpcBase:
         GENERIC_APPLICATION_ERROR: 500
     }
 
-    json_encoder_class = None
-
     available_rpc_methods = dict()
     available_rpc_notifications = dict()
 
@@ -219,7 +217,7 @@ class RpcBase:
     @classmethod
     def __process(cls, data, original_msg, is_notification=False):
         """
-        Process the recived data
+        Process the received data
         :param dict data:
         :param channels.message.Message original_msg:
         :param bool is_notification:
@@ -275,7 +273,7 @@ class RpcBase:
 
         return result
 
-    def __handle(self, data):
+    def _handle(self, data):
         """
         Handle
         :param data:
@@ -328,6 +326,13 @@ class RpcBase:
 
 
 class JsonRpcWebsocketConsumer(JsonWebsocketConsumer, RpcBase):
+    @classmethod
+    def decode_json(cls, data):
+       try:
+           return json.loads(data)
+       except json.decoder.JSONDecodeError:
+           return None
+
     def base_receive_json(self, content):
         """
         Called when receiving a message.
@@ -335,7 +340,7 @@ class JsonRpcWebsocketConsumer(JsonWebsocketConsumer, RpcBase):
         :param kwargs:
         :return:
         """
-        result, is_notification = self.__handle(content)
+        result, is_notification = self._handle(content)
 
         # Send responce back only if it is a call, not notification
         if not is_notification:
@@ -366,7 +371,7 @@ class AsyncRpcHttpConsumer(AsyncHttpConsumer, RpcBase):
                 # json could not decoded
                 result = self.error(None, self.PARSE_ERROR, self.errors[self.PARSE_ERROR])
             else:
-                result, is_notification = self.__handle(data)
+                result, is_notification = self._handle(data)
 
             # Set response status code
             # http://www.jsonrpc.org/historical/json-rpc-over-http.html#response-codes

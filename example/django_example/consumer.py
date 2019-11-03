@@ -1,6 +1,6 @@
 from django.core.serializers.json import DjangoJSONEncoder
 
-from channels2_jsonrpc import JsonRpcConsumerTest
+from channels_jsonrpc import JsonRpcConsumerTest
 # import the logging library
 import logging
 
@@ -10,15 +10,6 @@ logger = logging.getLogger(__name__)
 
 class MyJsonRpcWebsocketConsumerTest(JsonRpcConsumerTest):
 
-    # Set to True if you want them, else leave out
-    strict_ordering = False
-    slight_ordering = False
-
-    # Set to True to automatically port users from HTTP cookies
-    # (you don't need channel_session_user, this implies it)
-    # https://channels.readthedocs.io/en/stable/generics.html#websockets
-    http_user = True
-
     def connection_groups(self, **kwargs):
         """
         Called to return the list of groups to automatically add/remove
@@ -26,16 +17,17 @@ class MyJsonRpcWebsocketConsumerTest(JsonRpcConsumerTest):
         """
         return ["test"]
 
-    def connect(self, message, **kwargs):
+    def connect(self):
         """
         Perform things on connection start
         """
-        self.message.reply_channel.send({"accept": True})
         logger.info("connect")
+        self.accept()
 
-        # Do stuff if needed
+        # reject
+        # self.close()
 
-    def disconnect(self, message, **kwargs):
+    def disconnect(self, close_code):
         """
         Perform things on connection close
         """
@@ -50,6 +42,8 @@ class MyJsonRpcWebsocketConsumerTest(JsonRpcConsumerTest):
         :param original_msg:
         :return:
         """
+
+        print('aaaa')
         return cls.__process(data, original_msg)
 
 
@@ -65,7 +59,3 @@ def ping(fake_an_error, **kwargs):
         #  --> {"id":1, "jsonrpc":"2.0","method":"mymodule.rpc.ping","params":{}}
         #  <-- {"id": 1, "jsonrpc": "2.0", "result": "pong"}
         return "pong"
-
-
-class DjangoJsonRpcWebsocketConsumerTest(JsonRpcConsumerTest):
-    json_encoder_class = DjangoJSONEncoder
