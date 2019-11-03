@@ -486,36 +486,39 @@ class MyTest(aiounittest.AsyncTestCase):
 #         self.assertEqual(msg['result'], ["pong_get_session", "value2_of_function", "name2_of_function"])
 #         await client.disconnect()
 #
-#     async def test_websocket_param_in_decorator_for_method(self):
+    # async def test_websocket_param_in_decorator_for_method(self):
+    #
+    #     @MyJsonRpcWebsocketConsumerTest.rpc_method(websocket=False)
+    #     def ping():
+    #         return "pong"
+    #
+    #     client = WebsocketCommunicator(application, 'ws/')
+    #     await client.connect()
+    #
+    #     await client.send_json_to({"id": 1, "jsonrpc": "2.0", "method": "ping", "params": []})
+    #     msg = await client.receive_json_from()
+    #     print(msg)
+    #     self.assertEqual(msg['error']['message'], "Method Not Found")
+    #     await client.disconnect()
 #
-#         @MyJsonRpcWebsocketConsumerTest.rpc_method(websocket=False)
-#         def ping():
-#             return "pong"
-#
-#         client = WebsocketCommunicator(application, 'ws/')
-#         await client.connect()
-#
-#         await client.send_json_to({"id": 1, "jsonrpc": "2.0", "method": "ping", "params": []})
-#         msg = await client.receive_json_from()
-#         self.assertEqual(msg['error']['message'], "Method Not Found")
-#         await client.disconnect()
-#
-#     async def test_websocket_param_in_decorator_for_notification(self):
-#
-#         @MyJsonRpcWebsocketConsumerTest.rpc_notification(websocket=False)
-#         def ping():
-#             return "pong"
-#
-#         client = WebsocketCommunicator(application, 'ws/')
-#         await client.connect()
-#
-#         await client.send_json_to({"jsonrpc": "2.0", "method": "ping", "params": []})
-#         msg = await client.receive_json_from()
-#         self.assertEqual(msg, None)
-#         await client.disconnect()
+    async def test_websocket_param_in_decorator_for_notification(self):
+
+        @MyJsonRpcWebsocketConsumerTest.rpc_notification(websocket=False)
+        def ping():
+            return "pong"
+
+        client = WebsocketCommunicator(application, 'ws/')
+        await client.connect()
+
+        await client.send_json_to({"jsonrpc": "2.0", "method": "ping", "params": []})
+        # Should display an error in the back
+        # The notification method shouldn't return any result
+        # method: ping, params: []
+        self.assertEqual(await client.receive_nothing(), True)
+        await client.disconnect()
 #
 #
-# class TestsNotifications(aiounittest.AsyncTestCase):
+class TestsNotifications(aiounittest.AsyncTestCase):
 #
 #     # async def test_group_notifications(self):
 #     #
@@ -610,51 +613,50 @@ class MyTest(aiounittest.AsyncTestCase):
 #     #     self.assertEqual(msg['method'], "notification.notif")
 #     #     self.assertEqual(msg['params'], {"payload": 1234})
 #
-#     async def test_inbound_notifications(self):
-#         @MyJsonRpcWebsocketConsumerTest.rpc_notification()
-#         def notif1(params, **kwargs):
-#             self.assertEqual(params, {"payload": True})
-#
-#         @MyJsonRpcWebsocketConsumerTest.rpc_notification('notif.notif2')
-#         def notif2(params, **kwargs):
-#             self.assertEqual(params, {"payload": 12345})
-#
-#         client = WebsocketCommunicator(application, 'ws/')
-#         await client.connect()
-#
-#         # we send a notification to the server
-#         await client.send_json_to({"jsonrpc": "2.0", "method": "notif1", "params": [{"payload": True}]})
-#         self.assertEqual(await client.receive_nothing(), True)
-#
-#         # we test with method rewriting
-#         await client.send_json_to({"jsonrpc": "2.0", "method": "notif.notif2", "params": [{"payload": 12345}]})
-#         self.assertEqual(await client.receive_nothing(), True)
-#         await client.disconnect()
-#
-#     async def test_kwargs_not_there(self):
-#         @MyJsonRpcWebsocketConsumerTest.rpc_method()
-#         def ping():
-#             return True
-#
-#         client = WebsocketCommunicator(application, 'ws/')
-#         await client.connect()
-#
-#         # we send a notification to the server
-#         await client.send_json_to({"id": 1, "jsonrpc": "2.0", "method": "ping", "params": []})
-#         msg = await client.receive_json_from()
-#         self.assertEqual(msg["result"], True)
-#         await client.disconnect()
-#
-#     async def test_error_on_notification_frame(self):
-#         @MyJsonRpcWebsocketConsumerTest.rpc_method()
-#         def ping():
-#             return True
-#
-#         client = WebsocketCommunicator(application, 'ws/')
-#         await client.connect()
-#
-#         # we send a notification to the server
-#         await client.send_json_to({"jsonrpc": "2.0", "method": "dwqwdq", "params": []})
-#         msg = await client.receive_json_from()
-#         self.assertEqual(msg, None)
-#         await client.disconnect()
+    async def test_inbound_notifications(self):
+        @MyJsonRpcWebsocketConsumerTest.rpc_notification()
+        def notif1(params, **kwargs):
+            self.assertEqual(params, {"payload": True})
+
+        @MyJsonRpcWebsocketConsumerTest.rpc_notification('notif.notif2')
+        def notif2(params, **kwargs):
+            self.assertEqual(params, {"payload": 12345})
+
+        client = WebsocketCommunicator(application, 'ws/')
+        await client.connect()
+
+        # we send a notification to the server
+        await client.send_json_to({"jsonrpc": "2.0", "method": "notif1", "params": [{"payload": True}]})
+        self.assertEqual(await client.receive_nothing(), True)
+
+        # we test with method rewriting
+        await client.send_json_to({"jsonrpc": "2.0", "method": "notif.notif2", "params": [{"payload": 12345}]})
+        self.assertEqual(await client.receive_nothing(), True)
+        await client.disconnect()
+
+    async def test_kwargs_not_there(self):
+        @MyJsonRpcWebsocketConsumerTest.rpc_method()
+        def ping():
+            return True
+
+        client = WebsocketCommunicator(application, 'ws/')
+        await client.connect()
+
+        # we send a notification to the server
+        await client.send_json_to({"id": 1, "jsonrpc": "2.0", "method": "ping", "params": []})
+        msg = await client.receive_json_from()
+        self.assertEqual(msg["result"], True)
+        await client.disconnect()
+
+    async def test_error_on_notification_frame(self):
+        @MyJsonRpcWebsocketConsumerTest.rpc_method()
+        def ping():
+            return True
+
+        client = WebsocketCommunicator(application, 'ws/')
+        await client.connect()
+
+        # we send a notification to the server
+        await client.send_json_to({"jsonrpc": "2.0", "method": "dwqwdq", "params": []})
+        self.assertEqual(await client.receive_nothing(), True)
+        await client.disconnect()
