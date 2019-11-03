@@ -18,7 +18,7 @@ before_deploy:
   - echo ls /home/travis/build/millerf/django-channels2-jsonrpc
 deploy:
     - provider: pypi
-      user: millerf
+      user: __token__
       password:
         secure: pypi-AgEIcHlwaS5vcmcCJDU4OWYxZjg1LTk3YmYtNGYyNS05NjFkLTcwZGUwODU1NGRkMAACSXsicGVybWlzc2lvbnMiOiB7InByb2plY3RzIjogWyJkamFuZ28tY2hhbm5lbHMyLWpzb25ycGMiXX0sICJ2ZXJzaW9uIjogMX0AAAYgYQv1wLEKjrM9XfiaWIkL-S9dveOmXxvhYnLnhxA8OAc
       on:
