@@ -12,12 +12,6 @@ install:
 
 script:
   - tox
-env:
-  - TOXENV=
-  - TOXENV=coverage
-  - DJANGO="Django==1.11.*"
-  - DJANGO="Django==2.1.*"
-  - DJANGO="Django==2.2.*"
 notifications:
   slack:
     secure: QVhlHVTMjtt5xwpF2936+gdB3iriawm4DyKd3kWMD8IPvXER+z7xSti41FQVIP99bkkfmHxvmBu/e7Sofvn7W/aK4LnZ31p1AkvnR7v0VGH6lZ8KbJFk5CJV5cR8pDRigPOB3D4i09MhiBtTdRBc/rNFiBWmJ0mwze6K8y5Bm5Mg/Ai26Fn/bMs9nxxoTDzcjgKMHelKwUatMaTCT2E1mKJftJ7KNXK5b0AoAd0T15nQ/z/0RaiRc6NKypr14kuNFJARVRR48FfSNsGKhLNy1dJKEAdPiOrD4I9VC6tbnOwhG6pc9zLD6sUlmIt6bdmJQTutN8WG06PSD5SiX78KZqsxpsfvkXsDulw+lwlI5Fb97G9MLNPVxTou2jyymm0p/DEJa9S+lDrzuuMEgipYRJxl7KtOf9kib+A4nYlQUgqXm9TSJsTpWo00+oF+EuKmKz0mqwbGXDWqZ0L0InXZ4hY0j6EYLpt/47BORBevNJjn1UDzWfDOAa0h55YLKuKiRcxuLofGeVoBES0gYdM2Q9dMWV/9qQPI5LiAFjvl+yU4rY1iue67KbPUxqaInUWaMofAgY0su2EYsevndQaWUrngkuI8HnxGNeTVMFJAzGDUm28FfbWUfHs6a7Muf8DkHRNtXbJDp6+yAwuFMYPxOTFgzhctNgRKx5JRjbvYmTU=
@@ -34,19 +28,11 @@ deploy:
     - provider: pypi
       user: millerf
       password:
-        secure: fge3nWckd/APmSonDR8cyODVAmMiDWrA46fG1C9RzYyupDhtLOImtb2UdWaYfJECCO+Sc5LqM+mw9lfXFiLn0wput4zSzQgH7tu9IC4HeAHuD7QCZm0eZZGn6TKP0NyI7M4Dy/hbAsqMNyTvQQv1V9mhce4sLy7lyfZytY/jQx1a6TkdzY8tjWhovk5FBPGTQfqusHLv9QiWtwxA4nZvJVMu68Tf0BIYCvUXUziCTBk0A/gvICfyjO7lMK45E+MwNKP+A4zUm1y/ya1Ppq6mHMOXTXYBqE1D2WQyVDkaoGjuDCqblz1/0yvZN9Wql8X26XU88CApZVG/SEqc6Mf6eW3YxyRzaUWlQNlZlCnfYE+Czil2/ndRd9IhToWdvpvgARrzRS7tO0vuAgAt05Eg8q8vwByJt329TeS8hMIqgvHYaMqRfdo21a0ZESJHXagSvDNVE9UnM1wgfO29ENKy0aWorYB8dUxUkVGO1Dy8dq7F3Lss+Vy9NPwfi9mZi5W2TUJe8rh+C91S9OcRkrqoiAOC1rv9uxeqGND6vWQ6JL4fguqpDDvllmB1wkTg46vV++42J0fkTUBfd9YrSxdg/eSN+voCgMmL6cTK+mdbvHVTZzgbk3gAZ7Tvds80mh2OjkUctJl56RMowhDmHQHoipFnQ9phLwvNTxf/x5OByV0=
+        secure: pypi-AgEIcHlwaS5vcmcCJDU4OWYxZjg1LTk3YmYtNGYyNS05NjFkLTcwZGUwODU1NGRkMAACSXsicGVybWlzc2lvbnMiOiB7InByb2plY3RzIjogWyJkamFuZ28tY2hhbm5lbHMyLWpzb25ycGMiXX0sICJ2ZXJzaW9uIjogMX0AAAYgYQv1wLEKjrM9XfiaWIkL-S9dveOmXxvhYnLnhxA8OAc
       on:
         tags: true
         distributions: sdist bdist_wheel
         repo: millerf/django-channels2-jsonrpc
 addons:
     code_climate:
-        repo_token: 485981332850be046c9a8c0beda9a864ae65e7649d2f8dc2ef447e39064df2a2
-
- #   - provider: releases
- #     api_key:
- #       secure: eWNcRlFoImCTciWy4YNCCtNbn2Klu9Q8kOAu5Stusobve+LdkuWrXwxDamtCMAoKfVR76ckQHdWIoTKxQYyIrZzHGneOCZcnnvdPN8olOW9ll3VHS6l1tuPW/LXmJ/Syqwm+4vFItspW5EJvaawhK3ETBJBA4A3TdbxpAWTAmAXG/aSSKodYjiAv7ZOKEP9fXfKIGu0rDd0ZGf37cqZ4OIuMM3GYE+AGL6mINwbhgdtag5v1LhpmghqW0kHWhDPlYRqZWe971cGt0HXxGpWqALthTmQTPfz5qXQ6eqZRsqGTv8xRWZo7kqqW53dKs8uVXltAErWNIkjzSkys8PchiwLogHg8Y6TdHo77xeMCXCDKz8qroFmRO4aj12/MVJMsCo2vNiVTbHzdzpy0NHp4p4ZyGFcjBYnmH7K1THWcWkRUILSjsVUhgG+jO2NdzAzADUai8HdLS1Jexmiq1YUMX8N53oseoSjBz1iuKJFWEDL+i/nERE813nyjtrs4jYYQ8BORWkJ/dTiZf8h28F83kgIkA8Rfl8U8hXqYgXW/K7fE2z5xlVLUthFbxOCGYXbRwZi+kUD8oo54mD0MO1moviLQQBdE6k+QUNyA7R4cMJC4YnAr3ZIzxNWzzPHCkFD7dfJOv/fxQ8nfRSVvKk+xTwA7SZ9tjff3m0KalLCS7xs=
- #     file_glob: true
- #     file: "${RELEASE_PKG_FILE}"
- #     on:
- #       repo: millerf/django-channels-jsonrpc
+        repo_token: c733d1abd2f685b1f6ecf418b7c507a007bf49181b3139be7c558c84c314c64d
