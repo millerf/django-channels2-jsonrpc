@@ -478,13 +478,10 @@ class TestsNotifications(aiounittest.AsyncTestCase):
 
         @MyJsonRpcWebsocketConsumerTest.rpc_method()
         def send_to_reply_channel(**kwargs):
-            customer = kwargs["consumer"]
-            customer.notify_channel("notification.ownnotif",
+            consumer = kwargs["consumer"]
+            consumer.notify_channel("notification.ownnotif",
                                                         {"payload": 12})
             return True
-
-        async def send_notif(_client):
-            await _client.send_json_to({"id":1, "jsonrpc":"2.0", "method":"send_to_group", "params":["group_test"]})
 
         client = WebsocketCommunicator(application, 'ws/')
 

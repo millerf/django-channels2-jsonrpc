@@ -12,7 +12,7 @@ For channels 1, see [here](https://github.com/millerf/django-channels-jsonrpc)
 
 [![PyPI version](https://badge.fury.io/py/django-channels2-jsonrpc.svg)](https://badge.fury.io/py/django-channels2-jsonrpc) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/b95e52e1177443e283ebeb3ebaf35df4)](https://www.codacy.com/manual/fab/django-channels2-jsonrpc?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=millerf/django-channels2-jsonrpc&amp;utm_campaign=Badge_Grade) [![Build Status](https://travis-ci.org/millerf/django-channels2-jsonrpc.svg?branch=master)](https://travis-ci.org/millerf/django-channels2-jsonrpc) [![Coverage Status](https://coveralls.io/repos/github/millerf/django-channels2-jsonrpc/badge.svg)](https://coveralls.io/github/millerf/django-channels2-jsonrpc) [![Code Climate](https://codeclimate.com/github/millerf/django-channels2-jsonrpc/badges/gpa.svg)](https://codeclimate.com/github/millerf/django-channels2-jsonrpc)
 
-The Django-channels-jsonrpc is aimed to enable [JSON-RPC](http://json-rpc.org/) functionnality on top of the excellent django channels project and especially their Websockets functionality.
+The Django-channels2-jsonrpc is aimed to enable [JSON-RPC](http://json-rpc.org/) functionnality on top of the excellent django channels project and especially their Websockets functionality.
 It is aimed to be:
   - Fully integrated with Channels
   - Fully implement JSON-RPC 1 and 2 protocol
@@ -32,7 +32,7 @@ Download and extract the [latest pre-built release](https://github.com/joemccann
 Install the dependencies and devDependencies and start the server.
 
 ```sh
-$ pip install django-channels-jsonrpc
+$ pip install django-channels2-jsonrpc
 ```
 
 
@@ -43,33 +43,31 @@ See complete example [here](https://github.com/millerf/django-channels-jsonrpc/b
 
 It is intended to be used as a Websocket consumer. See [documentation](http://channels.readthedocs.io/en/stable/generics.html#websockets) except... simplier...
 
-Import JsonRpcConsumer class and create the consumer
+Import JsonRpcWebsocketConsumer, AsyncsonRpcWebsocketConsumer or  AsyncRpcHttpConsumer class and create the consumer
 
 ```python
-from channels_jsonrpc import JsonRpcConsumer
+from channels_jsonrpc import JsonRpcWebsocketConsumer
 
 class MyJsonRpcConsumer(JsonRpcConsumer):
 
     def connect(self, message, **kwargs):
         """
-        Perform things on WebSocket connection start
-        """
-        self.message.reply_channel.send({"accept": True})
+		Perform things on WebSocket connection start
+		"""
+		self.accept()
 
         print("connect")
         # Do stuff if needed
 
-    def disconnect(self, message, **kwargs):
+  def disconnect(self, message, **kwargs):
         """
-        Perform things on WebSocket connection close
-        """
-        print("disconnect")
+		 Perform things on WebSocket connection close
+		"""  print("disconnect")
         # Do stuff if needed
 
 ```
-JsonRpcConsumer derives from Channels WebSocketConsumer, you can read about all it's features here:
-https://channels.readthedocs.io/en/stable/generics.html#websockets
-
+JsonRpcWebsocketConsumer derives from Channels JsonWebsocketConsumer, you can read about all it's features here:
+[https://channels.readthedocs.io/en/latest/topics/consumers.html#websocketconsumer](https://channels.readthedocs.io/en/latest/topics/consumers.html#websocketconsumer)
 Then the last step is to create the RPC methos hooks. IT is done with the decorator:
 ```python
 @MyJsonRpcConsumer.rpc_method()
@@ -103,24 +101,20 @@ RPC methods can obviously accept parameters. They also return "results" or "erro
 def ping(fake_an_error):
     if fake_an_error:
         # Will return an error to the client
-        #  --> {"id":1, "jsonrpc":"2.0","method":"mymodule.rpc.ping","params":{}}
-        #  <-- {"id": 1, "jsonrpc": "2.0", "error": {"message": "fake_error", "code": -32000, "data": ["fake_error"]}}
-        raise Exception("fake_error")
+ #  --> {"id":1, "jsonrpc":"2.0","method":"mymodule.rpc.ping","params":{}} #  <-- {"id": 1, "jsonrpc": "2.0", "error": {"message": "fake_error", "code": -32000, "data": ["fake_error"]}}  raise Exception("fake_error")
     else:
         # Will return a result to the client
-        #  --> {"id":1, "jsonrpc":"2.0","method":"mymodule.rpc.ping","params":{}}
-        #  <-- {"id": 1, "jsonrpc": "2.0", "result": "pong"}
-        return "pong"
+ #  --> {"id":1, "jsonrpc":"2.0","method":"mymodule.rpc.ping","params":{}} #  <-- {"id": 1, "jsonrpc": "2.0", "result": "pong"}  return "pong"
 ```
 
-## [Sessions and other parameters from Message object](#message-object)
-The original channel message - that can contain sessions (if activated with [http_user](https://channels.readthedocs.io/en/stable/generics.html#websockets)) and other important info  can be easily accessed by retrieving the `**kwargs` and get a parameter named *original_message*
+## [Sessions and other parameters from Consumer object](#consumer)
+The original channel message - that can contain sessions (if activated with [http_user](https://channels.readthedocs.io/en/stable/generics.html#websockets)) and other important info  can be easily accessed by retrieving the `**kwargs` and get a parameter named *consumer*
 
 ```python
 MyJsonRpcConsumerTest.rpc_method()
 def json_rpc_method(param1, **kwargs):
-    original_message = kwargs["orginal_message"]
-    ##do something with original_message
+    consumer = kwargs["consumer"]
+    ##do something with consumer
 ```
 
 Example:
@@ -128,17 +122,15 @@ Example:
 ```python
 class MyJsonRpcConsumerTest(JsonRpcConsumer):
     # Set to True to automatically port users from HTTP cookies
-    # (you don't need channel_session_user, this implies it)
-    # https://channels.readthedocs.io/en/stable/generics.html#websockets
-    http_user = True
+ # (you don't need channel_session_user, this implies it) # https://channels.readthedocs.io/en/stable/generics.html#websockets  http_user = True
 
 ....
 
 @MyJsonRpcConsumerTest.rpc_method()
     def ping(**kwargs):
-        original_message = kwargs["orginal_message"]
-        original_message.channel_session["test"] = True
-        return "pong"
+        consumer = kwargs["consumer"]
+        consumer.scope["session"]["test"] = True
+  return "pong"
 
 
 ```
@@ -147,13 +139,13 @@ class MyJsonRpcConsumerTest(JsonRpcConsumer):
 ### Inbound notifications
 Those are the one sent from the client to the server.
 They are dealt with the same way RPC methods are, except that instead of using `rpc_method()`, you can use `rpc_notification()`
-Thos `rpc_notifications` can also retrieve the [`original_message`](#message-object) object
+Thos `rpc_notifications` can also retrieve the [`consumer`](#consumer) object
 ```
 # Will be triggered when receiving this
 #  --> {"jsonrpc":"2.0","method":"notification.alt_name","params":["val_param1", "val_param2"]}
 @MyJsonRpcWebsocketConsumerTest.rpc_notification("notification.alt_name")
 def notification1(param1, param2, **kwargs):
-    original_message = kwargs["orginal_message"]
+    consumer = kwargs["consumer"]
     # Do something with notification
     # ...
     # Notification shouldn't return anything.
@@ -174,22 +166,9 @@ def send_to_group(group_name):
 Calling the RPC-method will send this notification to all the group *group_name*
 
 
- - **JsonRpcWebsocketConsumer.notify_channel(*reply_channel*, *method*, *params*)**
+  - **JsonRpcWebsocketConsumer.notify_channel(*reply_channel*, *method*, *params*)**
 
-This will notify only *one* channel/client.
-
-```
-@MyJsonRpcWebsocketConsumerTest.rpc_method()
-def send_to_reply_channel(**kwargs):
-    original_message = kwarg["original_message"]
-    MyJsonRpcWebsocketConsumerTest.notify_channel(original_message.reply_channel,
-                                                "notification.ownnotif",
-                                                {"payload": 12})
-    return True
-
-```
-
-The `reply_channel` can be found in the[`original_message`](#message-object) object.
+`Now removed from version 2 as channels layers are not bound to a consumer anymore. Please read on ` [here](https://channels.readthedocs.io/en/latest/topics/channel_layers.html)
 
 ### Transport-specific rpc-method/notifications
 If you want to restrict rpc methods or notifications access to a specific transport method (http or websocket)
@@ -199,7 +178,7 @@ You can use them like this:
 ```
 @MyJsonRpcWebsocketConsumerTest.rpc_notification("notification.alt_name", websocket=True, http=False)
 def notification1(param1, param2, **kwargs):
-    original_message = kwargs["orginal_message"]
+    consumer = kwargs["consumer"]
     # This notification will only be used when using websocket transport
     return
 ```
@@ -207,14 +186,7 @@ def notification1(param1, param2, **kwargs):
 
 
 ## Custom JSON encoder class
-
-```python
-from django.core.serializers.json import DjangoJSONEncoder
-
-
-class DjangoJsonRpcConsumer(JsonRpcConsumer):
-    json_encoder_class = DjangoJSONEncoder
-```
+  `Same as Channels. See` [here]([https://channels.readthedocs.io/en/latest/topics/consumers.html#jsonwebsocketconsumer](https://channels.readthedocs.io/en/latest/topics/consumers.html#jsonwebsocketconsumer))
 
 ## Testing
 
@@ -222,34 +194,6 @@ class DjangoJsonRpcConsumer(JsonRpcConsumer):
 The JsonRpcConsumer class can be tested the same way Channels Consumers are tested.
 See [here](http://channels.readthedocs.io/en/stable/testing.html)
 
-You just need to remember to set your JsonRpcConsumer class to TEST_MODE in the test:
-
-```python
-from channels.tests import ChannelTestCase, HttpClient
-from .consumer import MyJsonRpcConsumer
-
-MyJsonRpcConsumer.TEST_MODE = True
-
-
-
-class TestsJsonConsumer(ChannelTestCase):
-    def assertResult(self, method, params, result, error=False):
-        client = HttpClient()
-        client.send_and_consume('websocket.receive', text=request(method, params))
-        key = "result" if not error else "error"
-        message = client.receive()
-        if message is None or key not in message:
-            raise KeyError("'%s' key not in message: %s" % (key, message))
-
-        self.assertEquals(message[key], result)
-
-    def assertError(self, method, params, result):
-        self.assertResult(method, params, result, True)
-
-    def test_assert_result(self):
-
-         self.assertResult("ping", {}, "pong")
-```
 
 ## License
 
@@ -261,4 +205,3 @@ MIT
 **Free Software, Hell Yeah!**
 
 [//]: # (These are reference links used in the body of this note and get stripped out when the markdown processor does its job. There is no need to format nicely because it shouldn't be seen. Thanks SO - http://stackoverflow.com/questions/4823468/store-comments-in-markdown-syntax)
-
