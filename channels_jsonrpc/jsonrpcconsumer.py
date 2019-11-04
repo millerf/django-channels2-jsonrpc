@@ -1,6 +1,7 @@
 import json
 import logging
 import sys
+from asgiref.sync import async_to_sync
 
 if sys.version_info < (3, 5):
     from inspect import getargspec as getfullargspec
@@ -190,20 +191,7 @@ class RpcBase:
 
         return RpcBase.json_rpc_frame(error=error, _id=_id)
 
-    @classmethod
-    def notify_group(cls, group_name, method, params=None):
-        """
-        Notify a group. Using JSON-RPC notificatons
-        :param group_name: Group name
-        :param method: JSON-RPC method
-        :param params: parmas of the method
-        :return:
-        """
-        content = cls.json_rpc_frame(method=method, params=params)
-        cls.group_send(group_name, cls._encode(content))
-
-    @classmethod
-    def notify_channel(cls, reply_channel, method, params):
+    def notify_channel(self, method, params):
         """
         Notify a group. Using JSON-RPC notificatons
         :param reply_channel: Reply channel
@@ -211,9 +199,8 @@ class RpcBase:
         :param params: parmas of the method
         :return:
         """
-        content = cls.json_rpc_frame(method=method, params=params)
-        reply_channel.send({"text": cls._encode(content)})
-
+        content = self.json_rpc_frame(method=method, params=params)
+        self.send(self.encode_json(content))
 
     def __process(self, data, is_notification=False):
         """
@@ -242,6 +229,10 @@ class RpcBase:
                 method = self.__class__.available_rpc_notifications[id(self.__class__)][method_name]
             else:
                 method = self.__class__.available_rpc_methods[id(self.__class__)][method_name]
+            # Test if the websocket o http header was at false
+            proto = self.scope['type']
+            if not method.options[proto]:
+                raise MethodNotSupported('Method not available through %s' % proto)
         except (KeyError, MethodNotSupported):
             raise JsonRpcException(data.get('id'), self.METHOD_NOT_FOUND)
         params = data.get('params', [])
@@ -277,6 +268,7 @@ class RpcBase:
         """
         result = None
         is_notification = False
+
         if data != None:
             if isinstance(data, dict):
 
