@@ -1,7 +1,6 @@
 import json
 import logging
 import sys
-from asgiref.sync import async_to_sync
 
 if sys.version_info < (3, 5):
     from inspect import getargspec as getfullargspec
