@@ -186,7 +186,7 @@ def notification1(param1, param2, **kwargs):
 
 
 ## Custom JSON encoder class
-  `Same as Channels. See` [here]([https://channels.readthedocs.io/en/latest/topics/consumers.html#jsonwebsocketconsumer](https://channels.readthedocs.io/en/latest/topics/consumers.html#jsonwebsocketconsumer))
+  `Same as Channels. See` [here](https://channels.readthedocs.io/en/latest/topics/consumers.html#jsonwebsocketconsumer)
 
 ## Testing
 
