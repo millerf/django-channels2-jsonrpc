@@ -343,7 +343,7 @@ class JsonRpcWebsocketConsumer(JsonWebsocketConsumer, RpcBase):
         self.base_receive_json(content)
 
 
-class AsyncsonRpcWebsocketConsumer(AsyncJsonWebsocketConsumer, RpcBase):
+class AsyncJsonRpcWebsocketConsumer(AsyncJsonWebsocketConsumer, RpcBase):
 
     async def receive_json(self, content):
         self.base_receive_json(content)
@@ -385,14 +385,3 @@ class AsyncRpcHttpConsumer(AsyncHttpConsumer, RpcBase):
         self.send_response(status_code, json.dumps(result), headers=[
             (b'Content-Type', b'application/json-rpc'),
         ])
-
-
-class JsonRpcConsumerTest(JsonRpcWebsocketConsumer):
-    @classmethod
-    def clean(cls):
-        """
-        Clean the class method name for tests
-        :return: None
-        """
-        if id(cls) in cls.available_rpc_methods:
-            del cls.available_rpc_methods[id(cls)]

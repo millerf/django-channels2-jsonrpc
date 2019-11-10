@@ -1,12 +1,22 @@
 from django.core.serializers.json import DjangoJSONEncoder
+from channels_jsonrpc import JsonRpcWebsocketConsumer
 
-from channels_jsonrpc import JsonRpcConsumerTest
 # import the logging library
 import logging
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
 
+
+class JsonRpcConsumerTest(JsonRpcWebsocketConsumer):
+    @classmethod
+    def clean(cls):
+        """
+        Clean the class method name for tests
+        :return: None
+        """
+        if id(cls) in cls.available_rpc_methods:
+            del cls.available_rpc_methods[id(cls)]
 
 class MyJsonRpcWebsocketConsumerTest(JsonRpcConsumerTest):
 

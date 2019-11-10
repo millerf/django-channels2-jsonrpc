@@ -1,11 +1,10 @@
 from datetime import datetime
-from channels_jsonrpc import JsonRpcConsumerTest, JsonRpcException
+from channels_jsonrpc import JsonRpcException
 from channels.testing import WebsocketCommunicator
 from .routing import application
-from .consumer import MyJsonRpcWebsocketConsumerTest, DjangoJsonRpcWebsocketConsumerTest
+from .consumer import MyJsonRpcWebsocketConsumerTest, DjangoJsonRpcWebsocketConsumerTest, JsonRpcConsumerTest
 
 from channels.routing import ProtocolTypeRouter, URLRouter
-
 
 class MyJsonRpcConsumer(JsonRpcConsumerTest):
     pass
