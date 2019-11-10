@@ -309,6 +309,32 @@ class RpcBase:
 
         return result
 
+    async def _async_base_receive_json(self, content):
+        """
+        Called when receiving a message.
+        :param message: message received
+        :param kwargs:
+        :return:
+        """
+        result, is_notification = self._handle(content)
+
+        # Send response back only if it is a call, not notification
+        if not is_notification:
+            await self.send_json(result)
+
+    def _base_receive_json(self, content):
+        """
+        Called when receiving a message.
+        :param message: message received
+        :param kwargs:
+        :return:
+        """
+        result, is_notification = self._handle(content)
+
+        # Send response back only if it is a call, not notification
+        if not is_notification:
+            self.send_json(result)
+
 
 class JsonRpcWebsocketConsumer(JsonWebsocketConsumer, RpcBase):
     def decode_json(self, data):
@@ -326,27 +352,14 @@ class JsonRpcWebsocketConsumer(JsonWebsocketConsumer, RpcBase):
             frame = self.error(None, self.PARSE_ERROR, self.errors[self.PARSE_RESULT_ERROR], '%s' % data['result'])
             return json.dumps(frame)
 
-    def base_receive_json(self, content):
-        """
-        Called when receiving a message.
-        :param message: message received
-        :param kwargs:
-        :return:
-        """
-        result, is_notification = self._handle(content)
-
-        # Send responce back only if it is a call, not notification
-        if not is_notification:
-            self.send_json(result)
-
     def receive_json(self, content):
-        self.base_receive_json(content)
+        self._base_receive_json(content)
 
 
 class AsyncJsonRpcWebsocketConsumer(AsyncJsonWebsocketConsumer, RpcBase):
 
     async def receive_json(self, content):
-        self.base_receive_json(content)
+        await self._async_base_receive_json(content)
 
 
 class AsyncRpcHttpConsumer(AsyncHttpConsumer, RpcBase):
