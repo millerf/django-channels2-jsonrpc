@@ -39,9 +39,9 @@ $ pip install django-channels2-jsonrpc
 ## Use
 
 
-See complete example [here](https://github.com/millerf/django-channels-jsonrpc/blob/master/example/django_example/), and in particular [consumer.py](https://github.com/millerf/django-channels-jsonrpc/blob/master/example/django_example/)
+See complete example [here](https://github.com/millerf/django-channels2-jsonrpc/blob/master/example/django_example/), and in particular [consumer.py](https://github.com/millerf/django-channels2-jsonrpc/blob/master/example/django_example/consumer.py)
 
-It is intended to be used as a Websocket consumer. See [documentation](http://channels.readthedocs.io/en/stable/generics.html#websockets) except... simplier...
+It is intended to be used as a Websocket consumer. See [documentation](https://channels.readthedocs.io/en/latest/topics/consumers.html#websocketconsumer) except... simplier...
 
 Import JsonRpcWebsocketConsumer, AsyncsonRpcWebsocketConsumer or  AsyncRpcHttpConsumer class and create the consumer
 
@@ -134,56 +134,6 @@ class MyJsonRpcConsumerTest(JsonRpcConsumer):
 
 
 ```
-
-## Notifications
-### Inbound notifications
-Those are the one sent from the client to the server.
-They are dealt with the same way RPC methods are, except that instead of using `rpc_method()`, you can use `rpc_notification()`
-Thos `rpc_notifications` can also retrieve the [`consumer`](#consumer) object
-```
-# Will be triggered when receiving this
-#  --> {"jsonrpc":"2.0","method":"notification.alt_name","params":["val_param1", "val_param2"]}
-@MyJsonRpcWebsocketConsumerTest.rpc_notification("notification.alt_name")
-def notification1(param1, param2, **kwargs):
-    consumer = kwargs["consumer"]
-    # Do something with notification
-    # ...
-    # Notification shouldn't return anything.
-    return
-```
-
-### Outbound notifications
-The server might want to send notifications to one or more of its clients. For that `JsonRpcWebsocketConsumer` provides 2 static methods:
- - **JsonRpcWebsocketConsumer.notify_group(*group_name*, *method*, *params*)**
-
-Using [channels'groups](https://channels.readthedocs.io/en/stable/concepts.html#groups) you can notify a whole group using this method
-```
-@MyJsonRpcWebsocketConsumerTest.rpc_method()
-def send_to_group(group_name):
-    MyJsonRpcWebsocketConsumerTest.notify_group(group_name, "notification.notif", {"payload": 1234})
-    return True
-```
-Calling the RPC-method will send this notification to all the group *group_name*
-
-
-  - **JsonRpcWebsocketConsumer.notify_channel(*reply_channel*, *method*, *params*)**
-
-`Now removed from version 2 as channels layers are not bound to a consumer anymore. Please read on ` [here](https://channels.readthedocs.io/en/latest/topics/channel_layers.html)
-
-### Transport-specific rpc-method/notifications
-If you want to restrict rpc methods or notifications access to a specific transport method (http or websocket)
-The two decorator `rpc_method()` and `rpc_notification()` accept parameters to restric their use. `websocket` (default: True) and `http` (default: True)
-
-You can use them like this:
-```
-@MyJsonRpcWebsocketConsumerTest.rpc_notification("notification.alt_name", websocket=True, http=False)
-def notification1(param1, param2, **kwargs):
-    consumer = kwargs["consumer"]
-    # This notification will only be used when using websocket transport
-    return
-```
-
-
 
 ## Custom JSON encoder class
   `Same as Channels. See` [here](https://channels.readthedocs.io/en/latest/topics/consumers.html#jsonwebsocketconsumer)
