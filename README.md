@@ -43,7 +43,7 @@ See complete example [here](https://github.com/millerf/django-channels2-jsonrpc/
 
 It is intended to be used as a Websocket consumer. See [documentation](https://channels.readthedocs.io/en/latest/topics/consumers.html#websocketconsumer) except... simplier...
 
-Import JsonRpcWebsocketConsumer, AsyncsonRpcWebsocketConsumer or  AsyncRpcHttpConsumer class and create the consumer
+Import JsonRpcWebsocketConsumer, AsyncJsonRpcWebsocketConsumer or  AsyncRpcHttpConsumer class and create the consumer
 
 ```python
 from channels_jsonrpc import JsonRpcWebsocketConsumer
@@ -107,6 +107,24 @@ def ping(fake_an_error):
  #  --> {"id":1, "jsonrpc":"2.0","method":"mymodule.rpc.ping","params":{}} #  <-- {"id": 1, "jsonrpc": "2.0", "result": "pong"}  return "pong"
 ```
 
+
+
+## Async Use
+
+Simply derive your customer from an asynchronous customer like `AsyncJsonRpcWebsocketConsumer`
+
+
+```python
+from channels_jsonrpc import AsyncJsonRpcWebsocketConsumer
+
+class MyAsyncJsonRpcConsumer(AsyncJsonRpcWebsocketConsumer):
+	pass
+
+@MyAsyncJsonRpcConsumer.rpc_method("mymodule.rpc.ping")
+async def ping(fake_an_error):
+	return "ping"
+```
+
 ## [Sessions and other parameters from Consumer object](#consumer)
 The original channel message - that can contain sessions (if activated with [http_user](https://channels.readthedocs.io/en/stable/generics.html#websockets)) and other important info  can be easily accessed by retrieving the `**kwargs` and get a parameter named *consumer*
 
@@ -131,7 +149,6 @@ class MyJsonRpcConsumerTest(JsonRpcConsumer):
         consumer = kwargs["consumer"]
         consumer.scope["session"]["test"] = True
   return "pong"
-
 
 ```
 
