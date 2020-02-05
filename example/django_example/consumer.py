@@ -1,6 +1,6 @@
 from django.core.serializers.json import DjangoJSONEncoder
 
-from channels_jsonrpc import JsonRpcConsumerTest
+from .consumer_test import JsonRpcConsumerTest
 # import the logging library
 import logging
 
