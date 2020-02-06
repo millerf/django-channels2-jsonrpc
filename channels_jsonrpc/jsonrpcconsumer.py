@@ -1,23 +1,14 @@
 import json
 import logging
-import sys
-
-if sys.version_info < (3, 5):
-    from inspect import getargspec as getfullargspec
-
-    keywords_args = "keywords"
-else:
-    from inspect import getfullargspec
-
-    keywords_args = "varkw"
-
 from channels.generic.websocket import JsonWebsocketConsumer, AsyncJsonWebsocketConsumer
-from channels.generic.http import AsyncHttpConsumer
 from django.conf import settings
 from six import string_types
+from inspect import getfullargspec
+keywords_args = "varkw"
 
 # Get an instance of a logger
-logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
+logger = logging.getLogger('django')
 
 
 class JsonRpcException(Exception):
@@ -25,7 +16,6 @@ class JsonRpcException(Exception):
     >>> exc = JsonRpcException(1, JsonRpcConsumer.INVALID_REQUEST)
     >>> str(exc)
     '{"jsonrpc": "2.0", "id": 1, "error": {"message": "Invalid Request", "code": -32600}}'
-
     """
 
     def __init__(self, rpc_id, code, data=None):
@@ -193,7 +183,6 @@ class RpcBase:
     def notify_channel(self, method, params):
         """
         Notify a group. Using JSON-RPC notificatons
-        :param reply_channel: Reply channel
         :param method: JSON-RPC method
         :param params: parmas of the method
         :return:
@@ -202,19 +191,16 @@ class RpcBase:
         self.send(self.encode_json(content))
 
     def _get_method(self, data, is_notification):
+        method_name = data.get('method', None)
 
-        if data.get('jsonrpc') != "2.0":
-            raise JsonRpcException(data.get('id'), self.INVALID_REQUEST)
+        if data.get('jsonrpc') != "2.0" or method_name is None:
+            raise JsonRpcException(data.get('id', None), self.INVALID_REQUEST)
 
-        if 'method' not in data:
-            raise JsonRpcException(data.get('id'), self.INVALID_REQUEST)
-
-        method_name = data['method']
         if not isinstance(method_name, string_types):
-            raise JsonRpcException(data.get('id'), self.INVALID_REQUEST)
+            raise JsonRpcException(data.get('id', None), self.INVALID_REQUEST)
 
         if method_name.startswith('_'):
-            raise JsonRpcException(data.get('id'), self.METHOD_NOT_FOUND)
+            raise JsonRpcException(data.get('id', None), self.METHOD_NOT_FOUND)
 
         try:
             if is_notification:
@@ -236,11 +222,10 @@ class RpcBase:
             raise JsonRpcException(data.get('id'), self.INVALID_PARAMS)
         return params
 
-    def __process(self, data, is_notification=False):
+    def _process(self, data, is_notification=False):
         """
         Process the received data
         :param dict data:
-        :param channels.message.Message original_msg:
         :param bool is_notification:
         :return: dict
         """
@@ -251,7 +236,7 @@ class RpcBase:
         if settings.DEBUG:
             logger.debug('Executing %s(%s)' % (method.__qualname__, json.dumps(params)))
 
-        result = self.__get_result(method, params)
+        result = self._method_call(method, params)
 
         # check and pack result
         if not is_notification:
@@ -276,35 +261,29 @@ class RpcBase:
         result = None
         is_notification = False
 
-        if data is not None:
-            if isinstance(data, dict):
-
-                try:
-                    if data.get('method') is not None and data.get('id') is None:
-                        is_notification = True
-                    result = self.__process(data, is_notification)
-                except JsonRpcException as e:
-                    result = e.as_dict()
-                except Exception as e:
-                    logger.debug('Application error', e)
-                    result = self.error(data.get('id'),
-                                        self.GENERIC_APPLICATION_ERROR,
-                                        str(e),
-                                        e.args[0] if len(e.args) == 1 else e.args)
-            elif isinstance(data, list):
-                # TODO: implement batch calls
-                if len([x for x in data if not isinstance(x, dict)]):
-                    result = self.error(None, self.INVALID_REQUEST, self.errors[self.INVALID_REQUEST])
-
-        else:
-            result = self.error(None, self.INVALID_REQUEST, self.errors[self.INVALID_REQUEST])
+        if isinstance(data, dict):
+            try:
+                if data.get('method') is not None and data.get('id') is None:
+                    is_notification = True
+                result = self._process(data, is_notification)
+            except JsonRpcException as e:
+                result = e.as_dict()
+            except Exception as e:
+                logger.debug('Application error', e)
+                result = self.error(data.get('id'),
+                                    self.GENERIC_APPLICATION_ERROR,
+                                    str(e),
+                                    e.args[0] if len(e.args) == 1 else e.args)
+        elif isinstance(data, list):
+            # TODO: implement batch calls
+            if len([x for x in data if not isinstance(x, dict)]):
+                result = self.error(None, self.INVALID_REQUEST, self.errors[self.INVALID_REQUEST])
 
         return result, is_notification
 
-    def __get_result(self, method, params):
-
+    def _method_call(self, method, params):
         func_args = getattr(getfullargspec(method), keywords_args)
-        if func_args and "kwargs" in func_args:
+        if func_args and 'kwargs' in func_args:
             if isinstance(params, list):
                 result = method(*params, consumer=self)
             else:
@@ -317,14 +296,29 @@ class RpcBase:
 
         return result
 
-    def _base_receive_json(self, content):
-        """
-        Called when receiving a message.
-        :param message: message received
-        :param kwargs:
-        :return:
-        """
-        result, is_notification = self._handle(content)
+
+class JsonRpcWebsocketConsumer(JsonWebsocketConsumer, RpcBase):
+    def decode_json(self, data):
+        try:
+            return json.loads(data)
+        except json.decoder.JSONDecodeError as e:
+            frame = self.error(None, self.PARSE_ERROR, self.errors[self.PARSE_ERROR])
+            self.send_json(frame)
+            return None
+
+    def encode_json(self, data):
+        try:
+            return json.dumps(data)
+        except TypeError:
+            frame = self.error(None, self.PARSE_ERROR, self.errors[self.PARSE_RESULT_ERROR], '%s' % data['result'])
+            return json.dumps(frame)
+
+    def receive_json(self, content, **kwargs):
+        if content is not None:
+            result, is_notification = self._handle(content)
+        else:
+            result = self.error(None, self.INVALID_REQUEST, self.errors[self.INVALID_REQUEST])
+            is_notification = False  # as in original code TODO: check if error on notification must be
 
         # Send response back only if it is a call, not notification
         if not is_notification:
@@ -332,10 +326,10 @@ class RpcBase:
 
 
 class AsyncRpcBase(RpcBase):
-    async def __get_result(self, method, params):
+    async def _method_call(self, method, params):
 
         func_args = getattr(getfullargspec(method), keywords_args)
-        if func_args and "kwargs" in func_args:
+        if func_args and 'kwargs' in func_args:
             if isinstance(params, list):
                 result = await method(*params, consumer=self)
             else:
@@ -348,11 +342,10 @@ class AsyncRpcBase(RpcBase):
 
         return result
 
-    async def __process(self, data, is_notification=False):
+    async def _process(self, data, is_notification=False):
         """
         Process the received data
         :param dict data:
-        :param channels.message.Message original_msg:
         :param bool is_notification:
         :return: dict
         """
@@ -364,7 +357,7 @@ class AsyncRpcBase(RpcBase):
         if settings.DEBUG:
             logger.debug('Executing %s(%s)' % (method.__qualname__, json.dumps(params)))
 
-        result = await self.__get_result(method, params)
+        result = await self._method_call(method, params)
 
         # check and pack result
         if not is_notification:
@@ -375,7 +368,7 @@ class AsyncRpcBase(RpcBase):
             result = self.json_rpc_frame(result=result, _id=data.get('id'))
         elif result is not None:
             logger.warning("The notification method shouldn't return any result")
-            logger.warning("method: %s, params: %s" % (method.__qualname__, params))
+            logger.warning('method: %s, params: %s' % (method.__qualname__, params))
             result = None
 
         return result
@@ -389,103 +382,36 @@ class AsyncRpcBase(RpcBase):
         result = None
         is_notification = False
 
-        if data is not None:
-            if isinstance(data, dict):
-
-                try:
-                    if data.get('method') is not None and data.get('id') is None:
-                        is_notification = True
-                    result = await self.__process(data, is_notification)
-                except JsonRpcException as e:
-                    result = e.as_dict()
-                except Exception as e:
-                    logger.debug('Application error', e)
-                    result = self.error(data.get('id'),
-                                        self.GENERIC_APPLICATION_ERROR,
-                                        str(e),
-                                        e.args[0] if len(e.args) == 1 else e.args)
-            elif isinstance(data, list):
-                # TODO: implement batch calls
-                if len([x for x in data if not isinstance(x, dict)]):
-                    result = self.error(None, self.INVALID_REQUEST, self.errors[self.INVALID_REQUEST])
-
-        else:
-            result = self.error(None, self.INVALID_REQUEST, self.errors[self.INVALID_REQUEST])
+        if isinstance(data, dict):
+            try:
+                if data.get('method') is not None and data.get('id') is None:
+                    is_notification = True
+                result = await self._process(data, is_notification)
+            except JsonRpcException as e:
+                result = e.as_dict()
+            except Exception as e:
+                logger.debug('Application error', e)
+                result = self.error(data.get('id'),
+                                    self.GENERIC_APPLICATION_ERROR,
+                                    str(e),
+                                    e.args[0] if len(e.args) == 1 else e.args)
+        elif isinstance(data, list):
+            # TODO: implement batch calls
+            if len([x for x in data if not isinstance(x, dict)]):
+                result = self.error(None, self.INVALID_REQUEST, self.errors[self.INVALID_REQUEST])
 
         return result, is_notification
-
-    async def _base_receive_json(self, content):
-        """
-        Called when receiving a message.
-        :param content: message received
-        :return:
-        """
-        result, is_notification = await self._handle(content)
-
-        # Send response back only if it is a call, not notification
-        if not is_notification:
-            await self.send_json(result)
-
-
-class JsonRpcWebsocketConsumer(JsonWebsocketConsumer, RpcBase):
-    def decode_json(self, data):
-       try:
-           return json.loads(data)
-       except json.decoder.JSONDecodeError as e:
-           frame = self.error(None, self.PARSE_ERROR, self.errors[self.PARSE_ERROR])
-           self.send_json(frame)
-           return None
-
-    def encode_json(self, data):
-        try:
-            return json.dumps(data)
-        except TypeError:
-            frame = self.error(None, self.PARSE_ERROR, self.errors[self.PARSE_RESULT_ERROR], '%s' % data['result'])
-            return json.dumps(frame)
-
-    def receive_json(self, content):
-        self._base_receive_json(content)
 
 
 class AsyncJsonRpcWebsocketConsumer(AsyncJsonWebsocketConsumer, AsyncRpcBase):
 
-    async def receive_json(self, content):
-        await self._base_receive_json(content)
-
-
-class AsyncRpcHttpConsumer(AsyncHttpConsumer, RpcBase):
-
-    async def handle(self, body):
-        """
-        Called on HTTP request
-        :param message: message received
-        :return:
-        """
-        if body != '':
-            try:
-                data = json.loads(body)
-            except ValueError:
-                # json could not decoded
-                result = self.error(None, self.PARSE_ERROR, self.errors[self.PARSE_ERROR])
-            else:
-                result, is_notification = self._handle(data)
-
-            # Set response status code
-            # http://www.jsonrpc.org/historical/json-rpc-over-http.html#response-codes
-            if not is_notification:
-                # call response
-                status_code = 200
-                if 'error' in result:
-                    status_code = self._http_codes[result['error']['code']]
-            else:
-                # notification response
-                status_code = 204
-                if result and 'error' in result:
-                    status_code = self._http_codes[result['error']['code']]
-                result = ''
+    async def receive_json(self, content, **kwargs):
+        if content is not None:
+            result, is_notification = await self._handle(content)
         else:
             result = self.error(None, self.INVALID_REQUEST, self.errors[self.INVALID_REQUEST])
+            is_notification = False  # as in original code TODO: check if error on notification must be
 
-        self.send_response(status_code, json.dumps(result), headers=[
-            (b'Content-Type', b'application/json-rpc'),
-        ])
+        # Send response back only if it is a call, not notification
+        if not is_notification:
+            await self.send_json(result)

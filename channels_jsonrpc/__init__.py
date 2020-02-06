@@ -1,2 +1,1 @@
-from .jsonrpcconsumer import AsyncRpcHttpConsumer, JsonRpcWebsocketConsumer, AsyncJsonRpcWebsocketConsumer,\
-    JsonRpcException
+from .jsonrpcconsumer import JsonRpcWebsocketConsumer, AsyncJsonRpcWebsocketConsumer, JsonRpcException
