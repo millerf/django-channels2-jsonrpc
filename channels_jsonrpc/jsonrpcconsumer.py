@@ -4,11 +4,10 @@ from channels.generic.websocket import JsonWebsocketConsumer, AsyncJsonWebsocket
 from django.conf import settings
 from six import string_types
 from inspect import getfullargspec
-keywords_args = "varkw"
+keywords_args = 'varkw'
 
 # Get an instance of a logger
-# logger = logging.getLogger(__name__)
-logger = logging.getLogger('django')
+logger = logging.getLogger(__name__)
 
 
 class JsonRpcException(Exception):
@@ -55,7 +54,6 @@ class RpcBase:
         -32603 	Internal error 	Internal JSON-RPC error.
         -32099 to -32000
                 Server error 	Reserved for implementation-defined server-errors. (@TODO)
-
         """
 
     PARSE_ERROR = -32700
@@ -66,12 +64,12 @@ class RpcBase:
     GENERIC_APPLICATION_ERROR = -32000
     PARSE_RESULT_ERROR = -32701
     errors = dict()
-    errors[PARSE_ERROR] = "Parse Error"
-    errors[INVALID_REQUEST] = "Invalid Request"
-    errors[METHOD_NOT_FOUND] = "Method Not Found"
-    errors[INVALID_PARAMS] = "Invalid Params"
-    errors[INTERNAL_ERROR] = "Internal Error"
-    errors[GENERIC_APPLICATION_ERROR] = "Application Error"
+    errors[PARSE_ERROR] = 'Parse Error'
+    errors[INVALID_REQUEST] = 'Invalid Request'
+    errors[METHOD_NOT_FOUND] = 'Method Not Found'
+    errors[INVALID_PARAMS] = 'Invalid Params'
+    errors[INTERNAL_ERROR] = 'Internal Error'
+    errors[GENERIC_APPLICATION_ERROR] = 'Application Error'
     errors[PARSE_RESULT_ERROR] = 'Error while parsing result'
 
     available_rpc_methods = dict()
@@ -86,7 +84,6 @@ class RpcBase:
         :param bool http:if http transport can use this function
         :return: decorated function
         """
-
         def wrap(f):
             name = rpc_name if rpc_name is not None else f.__name__
             cid = id(cls)
@@ -118,7 +115,6 @@ class RpcBase:
         :param bool http:if http transport can use this function
         :return: decorated function
         """
-
         def wrap(f):
             name = rpc_name if rpc_name is not None else f.__name__
             cid = id(cls)
@@ -167,7 +163,7 @@ class RpcBase:
         """
         error = {'code': code, 'message': message}
         if data is not None:
-            error["data"] = data
+            error['data'] = data
 
         return RpcBase.json_rpc_frame(error=error, _id=_id)
 
@@ -212,7 +208,7 @@ class RpcBase:
             # Test if the websocket or http header was at false
             proto = self.scope['type']
             if not method.options[proto]:
-                raise MethodNotSupported('Method not available through %s' % proto)
+                raise MethodNotSupported(f'Method not available through {proto}')
         except (KeyError, MethodNotSupported):
             raise JsonRpcException(data.get('id'), self.METHOD_NOT_FOUND)
 
@@ -244,7 +240,7 @@ class JsonRpcWebsocketConsumer(JsonWebsocketConsumer, RpcBase):
     def decode_json(self, data):
         try:
             return json.loads(data)
-        except json.decoder.JSONDecodeError as e:
+        except json.decoder.JSONDecodeError:
             frame = self.error(None, self.PARSE_ERROR, self.errors[self.PARSE_ERROR])
             self.send_json(frame)
             return None
@@ -257,28 +253,28 @@ class JsonRpcWebsocketConsumer(JsonWebsocketConsumer, RpcBase):
             return json.dumps(frame)
 
     def _process(self, rpc_request):
-        self.rpc_validate(rpc_request)
         is_notification = not bool(rpc_request.get('id'))
         method = self._get_method(rpc_request, is_notification=is_notification)
         params = self._get_params(rpc_request)
 
         # log call in debug mode
         if settings.DEBUG:
-            logger.debug('Executing %s(%s)' % (method.__qualname__, json.dumps(params)))
+            logger.debug(f'Executing {method.__name__}({json.dumps(params)})')
 
         result = self._method_call(method, params)
 
         if not is_notification:
             if settings.DEBUG:
-                logger.debug('Execution result: %s' % result)
+                logger.debug(f'Execution result: {result}')
             rpc_response = self.json_rpc_frame(result=result, _id=rpc_request.get('id'))
             self.send_json(rpc_response)
 
         elif result is not None:
-            logger.warning(f'The notification method {method.__name__} shouldn\'t return any result')
+            logger.warning(f'The notification method {method.__name__} shouldn`t return any result')
 
     def receive_json(self, rpc_request, **kwargs):
         try:
+            self.rpc_validate(rpc_request)
             self._process(rpc_request)
 
         except JsonRpcException as ex:
@@ -314,28 +310,28 @@ class AsyncRpcBase(RpcBase):
 
 class AsyncJsonRpcWebsocketConsumer(AsyncJsonWebsocketConsumer, AsyncRpcBase):
     async def _process(self, rpc_request):
-        self.rpc_validate(rpc_request)
         is_notification = not bool(rpc_request.get('id'))
         method = self._get_method(rpc_request, is_notification=is_notification)
         params = self._get_params(rpc_request)
 
         # log call in debug mode
         if settings.DEBUG:
-            logger.debug('Executing %s(%s)' % (method.__qualname__, json.dumps(params)))
+            logger.debug(f'Executing {method.__name__}({json.dumps(params)})')
 
         result = await self._method_call(method, params)
 
         if not is_notification:
             if settings.DEBUG:
-                logger.debug('Execution result: %s' % result)
+                logger.debug(f'Execution result: {result}')
             rpc_response = self.json_rpc_frame(result=result, _id=rpc_request.get('id'))
             await self.send_json(rpc_response)
 
         elif result is not None:
-            logger.warning(f'The notification method {method.__name__} shouldn\'t return any result')
+            logger.warning(f'The notification method {method.__name__} shouldn`t return any result')
 
     async def receive_json(self, rpc_request, **kwargs):
         try:
+            self.rpc_validate(rpc_request)
             await self._process(rpc_request)
 
         except JsonRpcException as e:
