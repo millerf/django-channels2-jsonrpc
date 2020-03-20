@@ -75,6 +75,8 @@ class RpcBase:
     available_rpc_methods = dict()
     available_rpc_notifications = dict()
 
+    json_encoder_class = None
+
     @classmethod
     def rpc_method(cls, rpc_name=None, websocket=True, http=True):
         """
@@ -247,10 +249,10 @@ class JsonRpcWebsocketConsumer(JsonWebsocketConsumer, RpcBase):
 
     def encode_json(self, data):
         try:
-            return json.dumps(data)
+            return json.dumps(data, cls=self.json_encoder_class)
         except TypeError:
             frame = self.error(None, self.PARSE_ERROR, self.errors[self.PARSE_RESULT_ERROR], '%s' % data['result'])
-            return json.dumps(frame)
+            return json.dumps(frame, cls=self.json_encoder_class)
 
     def _process(self, rpc_request):
         is_notification = not bool(rpc_request.get('id'))
@@ -289,8 +291,9 @@ class JsonRpcWebsocketConsumer(JsonWebsocketConsumer, RpcBase):
             self.send_json(rpc_response)
 
 
-class AsyncRpcBase(RpcBase):
+class AsyncJsonRpcWebsocketConsumer(AsyncJsonWebsocketConsumer, RpcBase):
     """ Override all async methods """
+
     async def _method_call(self, method, params):
         func_args = getattr(getfullargspec(method), keywords_args)
 
@@ -307,8 +310,6 @@ class AsyncRpcBase(RpcBase):
 
         return result
 
-
-class AsyncJsonRpcWebsocketConsumer(AsyncJsonWebsocketConsumer, AsyncRpcBase):
     async def _process(self, rpc_request):
         is_notification = not bool(rpc_request.get('id'))
         method = self._get_method(rpc_request, is_notification=is_notification)
@@ -345,3 +346,6 @@ class AsyncJsonRpcWebsocketConsumer(AsyncJsonWebsocketConsumer, AsyncRpcBase):
                                       e.args[0] if len(e.args) == 1 else e.args)
             await self.send_json(rpc_response)
 
+    @classmethod
+    async def encode_json(cls, content):
+        return json.dumps(content, cls=cls.json_encoder_class)

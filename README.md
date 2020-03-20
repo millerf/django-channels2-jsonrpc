@@ -136,7 +136,12 @@ class MyJsonRpcConsumerTest(JsonRpcConsumer):
 ```
 
 ## Custom JSON encoder class
-  `Same as Channels. See` [here](https://channels.readthedocs.io/en/latest/topics/consumers.html#jsonwebsocketconsumer)
+from django.core.serializers.json import DjangoJSONEncoder
+```
+@Consumer(JsonRpcConsumer):
+    json_encoder_class = DjangoJSONEncoder
+
+```
 
 ## Testing
 
