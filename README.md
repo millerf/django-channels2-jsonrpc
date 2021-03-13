@@ -52,17 +52,18 @@ class MyJsonRpcConsumer(JsonRpcConsumer):
 
     def connect(self, message, **kwargs):
         """
-		Perform things on WebSocket connection start
-		"""
-		self.accept()
+        Perform things on WebSocket connection start
+        """
+        self.accept()
 
         print("connect")
         # Do stuff if needed
 
-  def disconnect(self, message, **kwargs):
+    def disconnect(self, message, **kwargs):
         """
-		 Perform things on WebSocket connection close
-		"""  print("disconnect")
+        Perform things on WebSocket connection close
+        """  
+        print("disconnect")
         # Do stuff if needed
 
 ```
@@ -122,7 +123,7 @@ Example:
 ```python
 class MyJsonRpcConsumerTest(JsonRpcConsumer):
     # Set to True to automatically port users from HTTP cookies
- # (you don't need channel_session_user, this implies it) # https://channels.readthedocs.io/en/stable/generics.html#websockets  http_user = True
+    # (you don't need channel_session_user, this implies it) # https://channels.readthedocs.io/en/stable/generics.html#websockets  http_user = True
 
 ....
 
@@ -130,7 +131,7 @@ class MyJsonRpcConsumerTest(JsonRpcConsumer):
     def ping(**kwargs):
         consumer = kwargs["consumer"]
         consumer.scope["session"]["test"] = True
-  return "pong"
+    return "pong"
 
 
 ```
