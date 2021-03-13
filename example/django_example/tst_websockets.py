@@ -1,5 +1,5 @@
 from datetime import datetime
-from channels_jsonrpc import JsonRpcConsumerTest, JsonRpcException
+from channels_jsonrpc.jsonrpcconsumer import JsonRpcConsumer, JsonRpcException
 from channels.testing import WebsocketCommunicator
 from .routing import application
 from .consumer import MyJsonRpcWebsocketConsumerTest, DjangoJsonRpcWebsocketConsumerTest

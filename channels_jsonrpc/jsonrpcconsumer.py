@@ -190,7 +190,7 @@ class RpcBase:
         if method_name is None or method_name == '':
             raise JsonRpcException(request_id, self.INVALID_REQUEST)
 
-        if request.get('jsonrpc') != "2.0":
+        if request.get('jsonrpc') != '2.0':
             raise JsonRpcException(request_id, self.INVALID_REQUEST)
 
         if not isinstance(method_name, string_types):
