@@ -136,7 +136,7 @@ class MyJsonRpcConsumerTest(JsonRpcConsumer):
 ```
 
 ## Custom JSON encoder class
-```
+```python
 from django.core.serializers.json import DjangoJSONEncoder
 
 class Consumer(JsonRpcConsumer):
