@@ -139,7 +139,7 @@ class MyJsonRpcConsumerTest(JsonRpcConsumer):
 ```
 from django.core.serializers.json import DjangoJSONEncoder
 
-@Consumer(JsonRpcConsumer):
+class Consumer(JsonRpcConsumer):
     json_encoder_class = DjangoJSONEncoder
 
 ```
