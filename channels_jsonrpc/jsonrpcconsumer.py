@@ -193,7 +193,6 @@ class RpcBase:
     def notify_channel(self, method, params):
         """
         Notify a group. Using JSON-RPC notificatons
-        :param reply_channel: Reply channel
         :param method: JSON-RPC method
         :param params: parmas of the method
         :return:
@@ -332,6 +331,16 @@ class RpcBase:
 
 
 class AsyncRpcBase(RpcBase):
+    async def notify_channel(self, method, params):
+        """
+        Notify a group. Using JSON-RPC notificatons
+        :param method: JSON-RPC method
+        :param params: parmas of the method
+        :return:
+        """
+        content = self.json_rpc_frame(method=method, params=params)
+        await self.send(await self.encode_json(content))
+
     async def __get_result(self, method, params):
 
         func_args = getattr(getfullargspec(method), keywords_args)
