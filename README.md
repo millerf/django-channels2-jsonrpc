@@ -129,7 +129,7 @@ async def ping(fake_an_error):
 The original channel message - that can contain sessions (if activated with [http_user](https://channels.readthedocs.io/en/stable/generics.html#websockets)) and other important info  can be easily accessed by retrieving the `**kwargs` and get a parameter named *consumer*
 
 ```python
-MyJsonRpcConsumerTest.rpc_method()
+@MyJsonRpcConsumerTest.rpc_method()
 def json_rpc_method(param1, **kwargs):
     consumer = kwargs["consumer"]
     ##do something with consumer
