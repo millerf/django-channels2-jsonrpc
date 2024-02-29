@@ -193,7 +193,6 @@ class RpcBase:
     def notify_channel(self, method, params):
         """
         Notify a group. Using JSON-RPC notificatons
-        :param reply_channel: Reply channel
         :param method: JSON-RPC method
         :param params: parmas of the method
         :return:
@@ -328,10 +327,30 @@ class RpcBase:
 
         # Send response back only if it is a call, not notification
         if not is_notification:
-            self.send_json(result)
+            try:
+                self.send_json(result)
+            except Exception as e:
+                # The only thing we know can fail here is sending to a closed
+                # socket, so just log it. Sadly at this point we have
+                # to except so broadly because actual exception type depends
+                # on what ASGI server we're running on.
+                logger.warning(
+                    "Could not send JSON response back to user on socket: %s",
+                    e,
+                )
 
 
 class AsyncRpcBase(RpcBase):
+    async def notify_channel(self, method, params):
+        """
+        Notify a group. Using JSON-RPC notificatons
+        :param method: JSON-RPC method
+        :param params: parmas of the method
+        :return:
+        """
+        content = self.json_rpc_frame(method=method, params=params)
+        await self.send(await self.encode_json(content))
+
     async def __get_result(self, method, params):
 
         func_args = getattr(getfullargspec(method), keywords_args)
@@ -424,7 +443,17 @@ class AsyncRpcBase(RpcBase):
 
         # Send response back only if it is a call, not notification
         if not is_notification:
-            await self.send_json(result)
+            try:
+                await self.send_json(result)
+            except Exception as e:
+                # The only thing we know can fail here is sending to a closed
+                # socket, so just log it. Sadly at this point we have
+                # to except so broadly because actual exception type depends
+                # on what ASGI server we're running on.
+                logger.warning(
+                    "Could not send JSON response back to user on socket: %s",
+                    e,
+                )
 
 
 class JsonRpcWebsocketConsumer(JsonWebsocketConsumer, RpcBase):
